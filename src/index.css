@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Smooth transition when switching themes */
+body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.theme-transition,
+.theme-transition *,
+.theme-transition *:before,
+.theme-transition *:after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, fill 0.2s ease, stroke 0.2s ease !important;
+}
+
+/* =========================================================
+   DARK MODE COLOR SYSTEM
+   - Background: Dark Navy / Near-Black (#050816 / #060817)
+   - Cards / Panels: Slightly lighter dark navy (#0D1428 / #10172B)
+   - Secondary surfaces: #111A31
+   - Tertiary / Hover surfaces: #18223E / #1F2C50
+   - Subtle borders: Dark purple/navy (#1E2640 / #232048 / #2B2554)
+   - Primary accent: Bright Violet / Purple (#6D3CFF to #7C3CFF)
+   - Text: White / Off-white headings, light blue-gray body
+   ========================================================= */
+.dark {
+  /* Page & Base Canvas */
+  --color-slate-950: #050816;
+  
+  /* Primary Cards, Panels, Modals, Navbars, Sidebars */
+  --color-slate-900: #0D1428;
+  --color-slate-850: #10172B;
+  
+  /* Secondary Surfaces, Child Cards, Nested Containers, Action Blocks */
+  --color-slate-800: #111A31;
+  --color-slate-750: #15203D;
+  
+  /* Hover States, Tertiary Surfaces, Chips */
+  --color-slate-700: #1A2649;
+  --color-slate-650: #22325E;
+  
+  /* Dark Navy/Purple Subtle Borders */
+  --color-slate-600: #283768;
+  
+  /* Text & Labels in Dark Mode */
+  --color-slate-500: #64748B;
+  --color-slate-400: #94A3B8;
+  --color-slate-300: #CBD5E1;
+  --color-slate-200: #E2E8F0;
+  --color-slate-100: #F8FAFC;
+  --color-slate-50: #050816;
+
+  /* Primary Violet / Purple System in Dark Mode (#6D3CFF - #7C3CFF) */
+  --color-indigo-950: #0B0822;
+  --color-indigo-900: #140E3B;
+  --color-indigo-850: #1B124F;
+  --color-indigo-800: #2B1870;
+  --color-indigo-700: #5225E0;
+  --color-indigo-600: #6D3CFF;
+  --color-indigo-500: #7C3CFF;
+  --color-indigo-400: #9D6FFF;
+  --color-indigo-300: #C2A3FF;
+  --color-indigo-200: #DEC7FF;
+  --color-indigo-100: #EFE4FF;
+  --color-indigo-50: #F7F3FF;
+
+  /* Purple & Violet Palette Synced to Vibrant Purple System */
+  --color-purple-950: #0B0822;
+  --color-purple-900: #140E3B;
+  --color-purple-850: #1B124F;
+  --color-purple-800: #2B1870;
+  --color-purple-700: #5225E0;
+  --color-purple-600: #6D3CFF;
+  --color-purple-500: #7C3CFF;
+  --color-purple-400: #9D6FFF;
+  --color-purple-300: #C2A3FF;
+  --color-purple-200: #DEC7FF;
+  --color-purple-100: #EFE4FF;
+
+  --color-violet-950: #0B0822;
+  --color-violet-900: #140E3B;
+  --color-violet-850: #1B124F;
+  --color-violet-800: #2B1870;
+  --color-violet-700: #5225E0;
+  --color-violet-600: #6D3CFF;
+  --color-violet-500: #7C3CFF;
+  --color-violet-400: #9D6FFF;
+  --color-violet-300: #C2A3FF;
+  --color-violet-200: #DEC7FF;
+
+  /* Neutral & Gray Fallbacks */
+  --color-zinc-950: #050816;
+  --color-zinc-900: #0D1428;
+  --color-zinc-800: #111A31;
+  --color-zinc-700: #1A2649;
+  --color-gray-950: #050816;
+  --color-gray-900: #0D1428;
+  --color-gray-800: #111A31;
+  --color-gray-700: #1A2649;
+}
+
+

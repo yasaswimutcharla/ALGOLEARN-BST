@@ -1,0 +1,8 @@
+{
+  "name": "BST Explorer",
+  "description": "Interactive educational platform to learn Binary Search Trees through visual animations, step-by-step guided practice, interactive lab, quizzes, and gamified challenges.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

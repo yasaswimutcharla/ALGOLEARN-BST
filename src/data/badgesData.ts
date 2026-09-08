@@ -1,0 +1,88 @@
+import { Badge } from '../types';
+
+export const ALL_BADGES: Badge[] = [
+  {
+    id: 'first-step',
+    title: 'First Seed',
+    description: 'Completed your very first BST lesson.',
+    icon: 'Sprout',
+    xpBonus: 50,
+  },
+  {
+    id: 'bst-rule-master',
+    title: 'Rule Master',
+    description: 'Mastered the golden rule: Left < Root < Right.',
+    icon: 'ShieldCheck',
+    xpBonus: 100,
+  },
+  {
+    id: 'search-scout',
+    title: 'Binary Scout',
+    description: 'Successfully navigated binary search path in O(log n).',
+    icon: 'Search',
+    xpBonus: 100,
+  },
+  {
+    id: 'inorder-virtuoso',
+    title: 'Inorder Virtuoso',
+    description: 'Discovered that Inorder traversal gives sorted order.',
+    icon: 'SortAsc',
+    xpBonus: 120,
+  },
+  {
+    id: 'tree-surgeon',
+    title: 'Tree Surgeon',
+    description: 'Successfully deleted nodes with 2 children using inorder successor.',
+    icon: 'Scissors',
+    xpBonus: 150,
+  },
+  {
+    id: 'practice-champion',
+    title: 'Practice Champion',
+    description: 'Solved 3 or more hands-on practice challenges.',
+    icon: 'Target',
+    xpBonus: 150,
+  },
+  {
+    id: 'lab-scientist',
+    title: 'BST Alchemist',
+    description: 'Experimented with custom BST visualizer in the Lab.',
+    icon: 'FlaskConical',
+    xpBonus: 100,
+  },
+  {
+    id: 'quiz-ace',
+    title: 'Quiz Prodigy',
+    description: 'Scored 80% or higher on the Main BST Quiz.',
+    icon: 'GraduationCap',
+    xpBonus: 200,
+  },
+  {
+    id: 'game-striker',
+    title: 'Binary Speedster',
+    description: 'Played a Game Challenge and set a high score.',
+    icon: 'Gamepad2',
+    xpBonus: 150,
+  },
+  {
+    id: 'perfect-balance',
+    title: 'Zen Balancer',
+    description: 'Learned why balanced trees are O(log n) vs skewed O(n).',
+    icon: 'Scale',
+    xpBonus: 150,
+  },
+  {
+    id: 'streak-keeper',
+    title: 'Dedication Flame',
+    description: 'Kept your learning streak alive.',
+    icon: 'Flame',
+    xpBonus: 100,
+  },
+  {
+    id: 'bst-grandmaster',
+    title: 'BST Grandmaster',
+    description: 'Unlocked all stages and earned BST Certificate of Mastery.',
+    icon: 'Trophy',
+    xpBonus: 300,
+  },
+];
