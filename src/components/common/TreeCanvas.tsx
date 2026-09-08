@@ -8,8 +8,9 @@ interface TreeCanvasProps {
   root: BSTNode | null;
   onNodeClick?: (node: BSTNode) => void;
   onSlotClick?: (slot: DropSlot) => void;
-  onSlotDrop?: (slot: DropSlot, value: number) => void;
+  onSlotDrop?: (slot: DropSlot, value: number, dropCoordinates?: { x: number; y: number }) => void;
   onNodeDragStart?: (node: BSTNode) => void;
+  onNodePointerDown?: (e: React.PointerEvent, node: BSTNode) => void;
   dropSlots?: DropSlot[];
   slots?: DropSlot[];
   activeNodeId?: string | null;
@@ -55,6 +56,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   onSlotClick,
   onSlotDrop,
   onNodeDragStart,
+  onNodePointerDown,
   dropSlots = [],
   slots,
   activeNodeId,
@@ -113,7 +115,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     const dataStr = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/node-value');
     const val = parseInt(dataStr, 10);
     if (!isNaN(val) && onSlotDrop) {
-      onSlotDrop(slot, val);
+      onSlotDrop(slot, val, { x: e.clientX, y: e.clientY });
     }
   };
 
@@ -273,7 +275,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
             let innerFill = isDark ? '#0D1428' : '#ffffff';
             let innerStroke = isDark ? '#4338ca' : '#a5b4fc';
             let textFill = isDark ? '#9D6FFF' : '#4f46e5';
-            let labelText = '+';
+            let labelText = '';
             let labelFontSize = '16';
 
             if (isSlotInvalid) {
@@ -301,7 +303,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
               labelText = '✓';
               labelFontSize = '16';
             } else if (isSlotHovered) {
-              // Neutral hovered drop target (NO green in normal mode)
+              // Neutral hovered drop target (No + symbol)
               lineStroke = isDark ? '#818cf8' : '#6366f1';
               outerFill = isDark ? '#241359' : '#e0e7ff';
               outerStroke = isDark ? '#a5b4fc' : '#4f46e5';
@@ -310,16 +312,18 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
               innerFill = isDark ? '#1e1b4b' : '#c7d2fe';
               innerStroke = isDark ? '#818cf8' : '#4f46e5';
               textFill = isDark ? '#ffffff' : '#312e81';
-              labelText = 'DROP';
-              labelFontSize = '10';
+              labelText = '';
+              labelFontSize = '14';
             } else if (selectedDragValue !== null && selectedDragValue !== undefined) {
-              // When dragging an element, all available empty positions look equivalent
+              // When dragging an element, all available empty positions look equivalent (No + symbol)
               outerFill = isDark ? '#1e1b4b' : '#eef2ff';
               outerStroke = isDark ? '#7C3CFF' : '#6366f1';
               outerStrokeWidth = '1.8';
               innerFill = isDark ? '#0f172a' : '#ffffff';
               innerStroke = isDark ? '#6366f1' : '#818cf8';
               textFill = isDark ? '#c7d2fe' : '#4f46e5';
+              labelText = '';
+              labelFontSize = '14';
             }
 
             return (
@@ -362,49 +366,36 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
                   />
                 )}
 
-                {/* Outer pulsing ring */}
+                {/* Single target slot circle (radius 20 matching tree nodes, static with no movement) */}
                 <circle
                   cx={slot.x}
                   cy={slot.y}
-                  r={isSlotInvalid ? 28 : isSlotHovered ? 28 : 24}
-                  fill={outerFill}
+                  r="20"
+                  fill={innerFill}
                   stroke={outerStroke}
-                  strokeWidth={outerStrokeWidth}
-                  strokeDasharray={outerDash}
-                  className={`transition-all ${
-                    isSlotInvalid
-                      ? 'scale-110 opacity-100 animate-bounce'
-                      : isSlotGuidedCorrect
-                      ? 'scale-110 opacity-100 animate-pulse'
-                      : isSlotHovered
-                      ? 'scale-110 opacity-100'
-                      : 'opacity-80 group-hover:opacity-100 group-hover:scale-105'
+                  strokeWidth={isSlotInvalid || isSlotGuidedCorrect ? '2.5' : isSlotHovered ? '2.5' : '2'}
+                  strokeDasharray={isSlotInvalid || isSlotGuidedCorrect ? 'none' : '4 3'}
+                  className={`transition-colors duration-200 ${
+                    isSlotInvalid || isSlotGuidedCorrect || isSlotHovered
+                      ? 'opacity-100'
+                      : 'opacity-85 group-hover:opacity-100'
                   }`}
                 />
 
-                {/* Inner target circle */}
-                <circle
-                  cx={slot.x}
-                  cy={slot.y}
-                  r={isSlotHovered ? 20 : 18}
-                  fill={innerFill}
-                  stroke={innerStroke}
-                  strokeWidth={isSlotInvalid || isSlotGuidedCorrect ? '2.5' : '2'}
-                  className="transition-all"
-                />
-
-                {/* Neutral + icon, ✕ for invalid, ✓ for guided, or DROP label inside slot */}
-                <text
-                  x={slot.x}
-                  y={slot.y + (labelText === 'DROP' ? 4 : 5)}
-                  textAnchor="middle"
-                  fill={textFill}
-                  fontSize={labelFontSize}
-                  fontWeight="bold"
-                  className="select-none pointer-events-none transition-transform"
-                >
-                  {labelText}
-                </text>
+                {/* ✕ for invalid, ✓ for guided, or DROP label inside slot (No + symbol) */}
+                {labelText ? (
+                  <text
+                    x={slot.x}
+                    y={slot.y + (labelText === 'DROP' ? 4 : 5)}
+                    textAnchor="middle"
+                    fill={textFill}
+                    fontSize={labelFontSize}
+                    fontWeight="bold"
+                    className="select-none pointer-events-none transition-transform"
+                  >
+                    {labelText}
+                  </text>
+                ) : null}
               </g>
             );
           })}
@@ -561,20 +552,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
                       }
                     }}
                   >
-                    {/* Outer pulsing ring / expanded on hover */}
-                    <circle
-                      cx="0"
-                      cy="0"
-                      r={isHovered ? 32 : 26}
-                      fill={isHovered ? (isDark ? '#78350f' : '#fef08a') : (isDark ? '#451a03' : '#fef3c7')}
-                      fillOpacity={isHovered ? '0.85' : (isDark ? '0.5' : '0.8')}
-                      stroke={isHovered ? '#f59e0b' : (isDark ? '#f59e0b' : '#d97706')}
-                      strokeWidth={isHovered ? '3.5' : '2.5'}
-                      strokeDasharray={isHovered ? '4 2' : '5 4'}
-                      className={isHovered ? 'animate-none' : 'animate-pulse'}
-                      style={{ pointerEvents: 'all' }}
-                    />
-                    {/* Inner slot circle */}
+                    {/* Single vacancy slot circle */}
                     <circle
                       cx="0"
                       cy="0"
@@ -582,6 +560,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
                       fill={isDark ? '#1e1b4b' : '#ffffff'}
                       stroke={isHovered ? '#d97706' : (isDark ? '#fbbf24' : '#b45309')}
                       strokeWidth={isHovered ? 2.5 : 2}
+                      strokeDasharray="4 2"
                       style={{ pointerEvents: 'all' }}
                     />
                     <text
@@ -635,37 +614,17 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
                       onNodeDragStart(node);
                     }
                   }}
+                  onPointerDown={(e) => {
+                    if (onNodePointerDown) {
+                      onNodePointerDown(e, node);
+                    }
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onNodeClick) onNodeClick(node);
                   }}
                 >
-                  {/* Subtle Node Shadow */}
-                  <circle
-                    cx="0"
-                    cy="2"
-                    r="20"
-                    fill={isDark ? '#000000' : '#4f46e5'}
-                    fillOpacity={isDark ? '0.3' : '0.08'}
-                    style={{ pointerEvents: 'none' }}
-                  />
-
-                  {/* Outer Glow Halo if active or targeted */}
-                  {isSpecialGlow && (
-                    <circle
-                      cx="0"
-                      cy="0"
-                      r="25"
-                      fill="none"
-                      stroke={strokeColor}
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
-                      className="animate-spin opacity-60 pointer-events-none"
-                      style={{ animationDuration: '6s' }}
-                    />
-                  )}
-
-                  {/* Main Node Circle */}
+                  {/* Single Main Node Circle */}
                   <circle
                     cx="0"
                     cy="0"
@@ -726,6 +685,23 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
           </AnimatePresence>
         </g>
       </svg>
+
+      {/* Comparison Rule Banner for Guided Solve */}
+      {comparisonBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-xl bg-indigo-600 dark:bg-indigo-500 text-white shadow-lg text-xs font-mono font-bold flex items-center gap-2 z-20 pointer-events-none"
+        >
+          <span>{comparisonBanner.text}</span>
+          {comparisonBanner.subtext && (
+            <span className="text-[11px] font-sans font-normal opacity-90 text-indigo-100">
+              • {comparisonBanner.subtext}
+            </span>
+          )}
+        </motion.div>
+      )}
 
       {/* Empty State Banner */}
       {!root && actualSlots.length === 0 && (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   RotateCcw,
@@ -13,6 +13,9 @@ import {
   Zap,
   ListOrdered,
   Send,
+  Undo2,
+  Redo2,
+  Square,
 } from 'lucide-react';
 import { GAME_CHALLENGES } from '../../data/gameChallengesData';
 import { BSTNode, DropSlot, GameChallenge, TraversalType } from '../../types';
@@ -47,6 +50,151 @@ export const GamePage: React.FC = () => {
     </ErrorBoundary>
   );
 };
+
+interface DynamicGuidedStep {
+  title: string;
+  actionDescription: string;
+  comparingNodeId: string | null;
+  guidedSlotId: string | null;
+  banner?: { text: string; subtext?: string; direction?: string };
+  isInsertAction: boolean;
+  valueToInsert?: number;
+  slotToInsert?: DropSlot;
+}
+
+function generateDynamicGuidedSteps(
+  root: BSTNode | null,
+  value: number,
+  availableSlots: DropSlot[]
+): DynamicGuidedStep[] {
+  if (!root) {
+    const rootSlot = availableSlots.find((s) => s.direction === 'root') || {
+      id: 'slot-root',
+      parentId: null,
+      direction: 'root' as const,
+      x: 340,
+      y: 55,
+    };
+    return [
+      {
+        title: `1. Tree is Empty`,
+        actionDescription: `We are inserting ${value}. Because the tree is currently empty, ${value} becomes the Root of the Binary Search Tree.`,
+        comparingNodeId: null,
+        guidedSlotId: 'slot-root',
+        banner: { text: `Empty Tree → Root`, subtext: `${value} will be root` },
+        isInsertAction: false,
+      },
+      {
+        title: `2. Place ${value} as Root`,
+        actionDescription: `The central root position is open. Click "Insert Node ${value}" to place it into the Root position.`,
+        comparingNodeId: null,
+        guidedSlotId: 'slot-root',
+        banner: { text: `Insert Root: ${value}`, subtext: `Establishing root of BST` },
+        isInsertAction: true,
+        valueToInsert: value,
+        slotToInsert: rootSlot,
+      },
+    ];
+  }
+
+  const steps: DynamicGuidedStep[] = [];
+  let curr: BSTNode | null = root;
+  let stepIndex = 1;
+
+  while (curr) {
+    if (value < curr.value) {
+      steps.push({
+        title: `Step ${stepIndex++}: Compare with Node ${curr.value}`,
+        actionDescription: `We are inserting ${value}. Comparing with node ${curr.value}: ${value} is smaller than ${curr.value} (${value} < ${curr.value}), so by BST rules we move to the LEFT subtree.`,
+        comparingNodeId: curr.id,
+        guidedSlotId: null,
+        banner: { text: `${value} < ${curr.value}`, subtext: `Smaller → Move LEFT`, direction: 'left' },
+        isInsertAction: false,
+      });
+
+      if (curr.left) {
+        curr = curr.left;
+      } else {
+        const slotId = `slot-${curr.id}-left`;
+        const matchedSlot = availableSlots.find((s) => s.id === slotId) || {
+          id: slotId,
+          parentId: curr.id,
+          direction: 'left' as const,
+          x: (curr.x || 340) - 50,
+          y: (curr.y || 55) + 68,
+        };
+
+        steps.push({
+          title: `Step ${stepIndex++}: Empty Position Found`,
+          actionDescription: `The LEFT child of ${curr.value} is empty. Because ${value} < ${curr.value}, this empty node is the correct insertion position for ${value}.`,
+          comparingNodeId: curr.id,
+          guidedSlotId: slotId,
+          banner: { text: `Left of ${curr.value}`, subtext: `Target position for ${value}` },
+          isInsertAction: false,
+        });
+
+        steps.push({
+          title: `Step ${stepIndex++}: Insert Node ${value}`,
+          actionDescription: `Click "Insert Node ${value}" to place ${value} as the left child of ${curr.value}.`,
+          comparingNodeId: curr.id,
+          guidedSlotId: slotId,
+          banner: { text: `Insert ${value}`, subtext: `Attaching node ${value}` },
+          isInsertAction: true,
+          valueToInsert: value,
+          slotToInsert: matchedSlot,
+        });
+        break;
+      }
+    } else if (value > curr.value) {
+      steps.push({
+        title: `Step ${stepIndex++}: Compare with Node ${curr.value}`,
+        actionDescription: `We are inserting ${value}. Comparing with node ${curr.value}: ${value} is greater than ${curr.value} (${value} > ${curr.value}), so by BST rules we move to the RIGHT subtree.`,
+        comparingNodeId: curr.id,
+        guidedSlotId: null,
+        banner: { text: `${value} > ${curr.value}`, subtext: `Greater → Move RIGHT`, direction: 'right' },
+        isInsertAction: false,
+      });
+
+      if (curr.right) {
+        curr = curr.right;
+      } else {
+        const slotId = `slot-${curr.id}-right`;
+        const matchedSlot = availableSlots.find((s) => s.id === slotId) || {
+          id: slotId,
+          parentId: curr.id,
+          direction: 'right' as const,
+          x: (curr.x || 340) + 50,
+          y: (curr.y || 55) + 68,
+        };
+
+        steps.push({
+          title: `Step ${stepIndex++}: Empty Position Found`,
+          actionDescription: `The RIGHT child of ${curr.value} is empty. Because ${value} > ${curr.value}, this empty node is the correct insertion position for ${value}.`,
+          comparingNodeId: curr.id,
+          guidedSlotId: slotId,
+          banner: { text: `Right of ${curr.value}`, subtext: `Target position for ${value}` },
+          isInsertAction: false,
+        });
+
+        steps.push({
+          title: `Step ${stepIndex++}: Insert Node ${value}`,
+          actionDescription: `Click "Insert Node ${value}" to place ${value} as the right child of ${curr.value}.`,
+          comparingNodeId: curr.id,
+          guidedSlotId: slotId,
+          banner: { text: `Insert ${value}`, subtext: `Attaching node ${value}` },
+          isInsertAction: true,
+          valueToInsert: value,
+          slotToInsert: matchedSlot,
+        });
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  return steps;
+}
 
 const GamePageContent: React.FC = () => {
   const {
@@ -113,6 +261,20 @@ const GamePageContent: React.FC = () => {
   const [showGuidedSolve, setShowGuidedSolve] = useState<boolean>(false);
   const [guidedStepIndex, setGuidedStepIndex] = useState<number>(0);
 
+  // Undo & Redo History
+  const [undoStack, setUndoStack] = useState<{
+    tree: BSTNode | null;
+    remainingTrayNumbers: number[];
+    nodeScores: Record<number, number>;
+    totalCorrect: number;
+  }[]>([]);
+  const [redoStack, setRedoStack] = useState<{
+    tree: BSTNode | null;
+    remainingTrayNumbers: number[];
+    nodeScores: Record<number, number>;
+    totalCorrect: number;
+  }[]>([]);
+
   // Traversal expected sequences for Level 5 (tree: [50, 30, 70, 20, 40, 60, 80])
   const traversalExpectedMap: Record<TraversalType, number[]> = {
     inorder: [20, 30, 40, 50, 60, 70, 80],
@@ -160,6 +322,8 @@ const GamePageContent: React.FC = () => {
     setPlacementFeedback(null);
     setInvalidSlotId(null);
     setIsChallengeComplete(false);
+    setUndoStack([]);
+    setRedoStack([]);
 
     // Reset scoring stats
     setNodeAttempts({});
@@ -197,8 +361,11 @@ const GamePageContent: React.FC = () => {
     };
   }, [challenge]);
 
-  // Available drop slots calculated dynamically from the current student tree
-  const availableDropSlots: DropSlot[] = getAvailableDropSlots(currentTree);
+  // Available drop slots calculated dynamically from the current student tree (hidden upon level completion)
+  const availableDropSlots: DropSlot[] =
+    isChallengeComplete || remainingTrayNumbers.length === 0
+      ? []
+      : getAvailableDropSlots(currentTree);
 
   // Active target for Level 2 (sequential incoming value)
   const currentLevel2Target = challenge.level === 2 && remainingTrayNumbers.length > 0 ? remainingTrayNumbers[0] : null;
@@ -207,8 +374,70 @@ const GamePageContent: React.FC = () => {
   const currentLevel4Stage =
     challenge.level === 4 && challenge.deletionStages ? challenge.deletionStages[deletionStageIndex] : null;
 
+  // Dynamic Step-by-Step Guided Solve (generates BST comparisons from CURRENT tree & next uninserted element)
+  const nextNumberToInsert = remainingTrayNumbers.length > 0 ? remainingTrayNumbers[0] : null;
+
+  const dynamicGuidedSteps: DynamicGuidedStep[] = useMemo(() => {
+    if (challenge.level > 3 || nextNumberToInsert === null) {
+      return [];
+    }
+    return generateDynamicGuidedSteps(currentTree, nextNumberToInsert, availableDropSlots);
+  }, [challenge.level, currentTree, nextNumberToInsert, availableDropSlots]);
+
+  const level4GuidedSteps = useMemo(() => [
+    {
+      stepNumber: 1,
+      title: '1. Stage 1: Leaf Deletion (Node 20)',
+      actionDescription: 'Node 20 has no children (Leaf). It can be directly severed from the tree by setting parent 30\'s left child pointer to null.',
+      buttonLabel: 'Delete Leaf 20 →',
+    },
+    {
+      stepNumber: 2,
+      title: '2. Stage 2: Target Node 30 with 1 Child',
+      actionDescription: 'Node 30 has exactly one child (40). Click Next to delete node 30 and observe the resulting [EMPTY] vacancy slot.',
+      buttonLabel: 'Delete Node 30 →',
+    },
+    {
+      stepNumber: 3,
+      title: '3. Stage 2: [EMPTY] Slot Created at Node 30',
+      actionDescription: 'Node 30 is removed! An [EMPTY] vacancy remains in its place, with child 40 intact below it. Click Next to promote child 40 up into the [EMPTY] slot.',
+      buttonLabel: 'Promote Child 40 into [EMPTY] Slot →',
+    },
+    {
+      stepNumber: 4,
+      title: '4. Stage 3: Target Root 50 with 2 Children',
+      actionDescription: 'Root 50 has two subtrees (left child 40, right subtree with 70, 60, 80). Click Next to delete Root 50 and observe the empty root vacancy.',
+      buttonLabel: 'Delete Root 50 →',
+    },
+    {
+      stepNumber: 5,
+      title: '5. Stage 3: Identify In-order Successor (60)',
+      actionDescription: 'Root 50 is removed! An [EMPTY] root vacancy remains. To maintain BST ordering (Left < Root < Right), identify the In-order Successor (minimum node in right subtree: 60). Click Next to promote 60 into the Root.',
+      buttonLabel: 'Promote Successor 60 into Root →',
+    },
+    {
+      stepNumber: 6,
+      title: '6. All 3 Deletion Cases Mastered!',
+      actionDescription: 'Case 1 (Leaf), Case 2 (Single Child), and Case 3 (Two Children) are all complete. The BST invariant is preserved!',
+      buttonLabel: 'Complete Challenge ✓',
+    },
+  ], []);
+
+  const activeGuidedSteps =
+    challenge.level <= 3 && nextNumberToInsert !== null
+      ? dynamicGuidedSteps
+      : challenge.level === 4
+      ? level4GuidedSteps
+      : challenge.guidedSolveSteps;
+
+  const currentGuidedStep = activeGuidedSteps[guidedStepIndex] || null;
+
   // Handle dropping or clicking a slot to place a number in the tree
-  const handleSlotDropOrClick = (slot: DropSlot, valueToPlace?: number) => {
+  const handleSlotDropOrClick = (
+    slot: DropSlot,
+    valueToPlace?: number,
+    dropPos?: { x: number; y: number }
+  ) => {
     const val = valueToPlace !== undefined ? valueToPlace : selectedDragNumber;
     if (val === null || val === undefined) return;
     if (isChallengeComplete) return;
@@ -239,13 +468,14 @@ const GamePageContent: React.FC = () => {
       setTotalMistakes((prev) => prev + 1);
       setTotalAttempts((prev) => prev + 1);
 
+      // Turn the selected empty node RED temporarily
       setInvalidSlotId(slot.id);
       setPlacementFeedback({
         type: 'error',
-        message: validation.explanation || `Incorrect placement! Rule: ${val} must follow Left < Root < Right.`,
+        message: `Incorrect position! ${validation.explanation || `Rule: ${val} must follow Left < Root < Right.`}`,
       });
 
-      // Snap back to tray
+      // Clear selected drag number so element returns to top tray
       setSelectedDragNumber(null);
       setTimeout(() => setInvalidSlotId(null), 1200);
       return;
@@ -266,6 +496,18 @@ const GamePageContent: React.FC = () => {
     const newAttempts = totalAttempts + 1;
     setTotalCorrect(newCorrect);
     setTotalAttempts(newAttempts);
+
+    // Push snapshot to undoStack
+    setUndoStack((prev) => [
+      ...prev,
+      {
+        tree: currentTree,
+        remainingTrayNumbers: [...remainingTrayNumbers],
+        nodeScores: { ...nodeScores },
+        totalCorrect,
+      },
+    ]);
+    setRedoStack([]);
 
     // Attach node to tree
     const newTree = attachNodeAtSlot(currentTree, slot, val);
@@ -289,6 +531,65 @@ const GamePageContent: React.FC = () => {
     if (remainingAfterPlacement.length === 0) {
       triggerChallengeSuccess(newCorrect, newAttempts, updatedScores);
     }
+  };
+
+  // Undo and Redo handlers for BST insertion flow
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    soundManager.playClick();
+    const prevSnapshot = undoStack[undoStack.length - 1];
+    const newUndoStack = undoStack.slice(0, -1);
+
+    setRedoStack((prev) => [
+      ...prev,
+      {
+        tree: currentTree,
+        remainingTrayNumbers: [...remainingTrayNumbers],
+        nodeScores: { ...nodeScores },
+        totalCorrect,
+      },
+    ]);
+
+    setUndoStack(newUndoStack);
+    setCurrentTree(prevSnapshot.tree);
+    setRemainingTrayNumbers(prevSnapshot.remainingTrayNumbers);
+    setNodeScores(prevSnapshot.nodeScores);
+    setTotalCorrect(prevSnapshot.totalCorrect);
+    setSelectedDragNumber(null);
+    setInvalidSlotId(null);
+    setPlacementFeedback({
+      type: 'info',
+      message: 'Undid last insertion. Node returned to the queue.',
+    });
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    soundManager.playClick();
+    const nextSnapshot = redoStack[redoStack.length - 1];
+    const newRedoStack = redoStack.slice(0, -1);
+
+    setUndoStack((prev) => [
+      ...prev,
+      {
+        tree: currentTree,
+        remainingTrayNumbers: [...remainingTrayNumbers],
+        nodeScores: { ...nodeScores },
+        totalCorrect,
+      },
+    ]);
+
+    setRedoStack(newRedoStack);
+    setCurrentTree(nextSnapshot.tree);
+    setRemainingTrayNumbers(nextSnapshot.remainingTrayNumbers);
+    setNodeScores(nextSnapshot.nodeScores);
+    setTotalCorrect(nextSnapshot.totalCorrect);
+    setSelectedDragNumber(null);
+    setInvalidSlotId(null);
+    setPlacementFeedback({
+      type: 'info',
+      message: 'Redid insertion.',
+    });
   };
 
   // Trigger Completion
@@ -363,11 +664,16 @@ const GamePageContent: React.FC = () => {
         setSelectedNodeForAction(node);
         setPlacementFeedback({
           type: 'info',
-          message: `Node ${node.value} selected. Now drag it or click the [EMPTY] slot above to place it as replacement.`,
+          message: `Node ${node.value} selected. Drag and drop it directly onto the [EMPTY] vacancy slot in the tree!`,
         });
         return;
       }
       setSelectedNodeForAction(node);
+      setSelectedDragNumber(node.value);
+      setPlacementFeedback({
+        type: 'info',
+        message: `Node ${node.value} selected. Drag it directly to the 🗑️ Dustbin below the canvas to delete it!`,
+      });
       return;
     }
 
@@ -479,7 +785,7 @@ const GamePageContent: React.FC = () => {
     });
   };
 
-  // Handle Drag Start from Number Chip Tray
+  // Handle Drag Start from Number Chip Tray (HTML5 native drag for desktop/mouse)
   const handleChipDragStart = (e: React.DragEvent, num: number) => {
     e.dataTransfer.setData('text/plain', num.toString());
     e.dataTransfer.setData('application/node-value', num.toString());
@@ -488,9 +794,21 @@ const GamePageContent: React.FC = () => {
     soundManager.playClick();
   };
 
-  // Universal pointer down for dragging number chips to slots
+  const handleChipDragEnd = () => {
+    setSelectedDragNumber(null);
+    setHoveredDropSlotId(null);
+    setPointerDrag(null);
+    setIsDustbinHovered(false);
+  };
+
+  // Touch pointer drag for mobile touch devices
   const handleChipPointerDown = (e: React.PointerEvent, num: number) => {
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    // For mouse users, native HTML5 drag handles the drag via onDragStart/onDragEnd without interference
+    if (e.pointerType === 'mouse') {
+      setSelectedDragNumber(num);
+      return;
+    }
+
     setSelectedDragNumber(num);
 
     const startX = e.clientX;
@@ -499,7 +817,7 @@ const GamePageContent: React.FC = () => {
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
-      if (dist > 5) {
+      if (dist > 8) {
         hasMoved = true;
       }
       if (hasMoved) {
@@ -510,7 +828,7 @@ const GamePageContent: React.FC = () => {
           y: moveEvent.clientY,
         });
 
-        // Detect hovered drop slot under cursor
+        // Detect hovered drop slot under touch position
         const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
         const slotEl = el?.closest('[data-drop-slot="true"]');
         let matchedId = slotEl?.getAttribute('data-slot-id') || null;
@@ -527,17 +845,78 @@ const GamePageContent: React.FC = () => {
           });
         }
         setHoveredDropSlotId(matchedId);
+
+        // Check if hovered over dustbin in Level 4
+        if (challenge.level === 4) {
+          const dustbinEl = el?.closest('#game-dustbin-dropzone');
+          if (dustbinEl) {
+            setIsDustbinHovered(true);
+          } else {
+            const dbEl = document.getElementById('game-dustbin-dropzone');
+            if (dbEl) {
+              const rect = dbEl.getBoundingClientRect();
+              if (
+                moveEvent.clientX >= rect.left &&
+                moveEvent.clientX <= rect.right &&
+                moveEvent.clientY >= rect.top &&
+                moveEvent.clientY <= rect.bottom
+              ) {
+                setIsDustbinHovered(true);
+              } else {
+                setIsDustbinHovered(false);
+              }
+            } else {
+              setIsDustbinHovered(false);
+            }
+          }
+        }
       }
+    };
+
+    const handlePointerCancel = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+      setPointerDrag(null);
+      setHoveredDropSlotId(null);
+      setIsDustbinHovered(false);
+      setSelectedDragNumber(null);
     };
 
     const handlePointerUp = (upEvent: PointerEvent) => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
 
       if (hasMoved) {
         // Dropped!
         const el = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+
+        // 1. Check if dropped over dustbin in Level 4 (to delete node)
+        let isOverDustbin = !!el?.closest('#game-dustbin-dropzone');
+        if (!isOverDustbin) {
+          const dbEl = document.getElementById('game-dustbin-dropzone');
+          if (dbEl) {
+            const rect = dbEl.getBoundingClientRect();
+            if (
+              upEvent.clientX >= rect.left &&
+              upEvent.clientX <= rect.right &&
+              upEvent.clientY >= rect.top &&
+              upEvent.clientY <= rect.bottom
+            ) {
+              isOverDustbin = true;
+            }
+          }
+        }
+
+        if (challenge.level === 4 && isOverDustbin) {
+          setIsDustbinHovered(false);
+          setPointerDrag(null);
+          handleExecuteDeletion(num);
+          return;
+        }
+
+        // 2. Check if dropped on a Drop Slot or Empty Slot
         const slotEl = el?.closest('[data-drop-slot="true"]');
         let targetSlotId = slotEl?.getAttribute('data-slot-id');
 
@@ -561,35 +940,38 @@ const GamePageContent: React.FC = () => {
               direction: 'root',
               x: 0,
               y: 0,
-            });
+            }, { x: upEvent.clientX, y: upEvent.clientY });
           } else {
             const matchedSlot = availableDropSlots.find((s) => s.id === targetSlotId);
             if (matchedSlot) {
-              handleSlotDropOrClick(matchedSlot, num);
+              handleSlotDropOrClick(matchedSlot, num, { x: upEvent.clientX, y: upEvent.clientY });
             }
           }
         } else {
-          setPlacementFeedback({
-            type: 'info',
-            message: `Dropped node ${num} outside valid slots. Drag and drop it directly onto a (+) slot in the tree!`,
-          });
+          // Released in open space: cancel drag smoothly with no error
+          setSelectedDragNumber(null);
         }
       } else {
         soundManager.playClick();
         setSelectedDragNumber(num);
         setPlacementFeedback({
           type: 'info',
-          message: `Node ${num} selected. Drag and drop it onto the correct (+) slot in the tree!`,
+          message: challenge.level === 4 && deletionPhase === 'replace_slot'
+            ? `Node ${num} selected. Drag and drop it directly onto the [EMPTY] vacancy slot in the tree!`
+            : challenge.level === 4
+            ? `Node ${num} selected. Drag it directly to the 🗑️ Dustbin below to delete it!`
+            : `Node ${num} selected. Drag and drop it onto the correct slot in the tree!`,
         });
       }
 
       setPointerDrag(null);
       setHoveredDropSlotId(null);
+      setIsDustbinHovered(false);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
   };
 
   // Execute Deletion via Dustbin Drop or Direct Click
@@ -716,7 +1098,11 @@ const GamePageContent: React.FC = () => {
   };
 
   // Handle Replacement Drop in Level 4
-  const handleReplacementDrop = (droppedValue: number, slot?: DropSlot) => {
+  const handleReplacementDrop = (
+    droppedValue: number,
+    slot?: DropSlot,
+    dropPos?: { x: number; y: number }
+  ) => {
     if (challenge.level !== 4 || deletionPhase !== 'replace_slot' || !emptySlotInfo) return;
 
     const updatedAttempts = totalAttempts + 1;
@@ -725,9 +1111,18 @@ const GamePageContent: React.FC = () => {
     if (droppedValue !== emptySlotInfo.expectedReplacement) {
       soundManager.playError();
       setTotalMistakes((prev) => prev + 1);
+      setInvalidSlotId(emptySlotInfo.id);
+      setTimeout(() => {
+        setInvalidSlotId(null);
+      }, 1200);
+
       setPlacementFeedback({
         type: 'error',
-        message: `Incorrect replacement! Dropped ${droppedValue}. For ${currentLevel4Stage?.caseType}, you must replace with ${emptySlotInfo.expectedReplacement}.`,
+        message: `Incorrect replacement! Dropped ${droppedValue}. For ${currentLevel4Stage?.caseType}, you must replace with ${emptySlotInfo.expectedReplacement} (${
+          deletionStageIndex === 1
+            ? 'promote child 40'
+            : 'in-order successor: minimum node in right subtree'
+        }).`,
       });
       return;
     }
@@ -804,13 +1199,13 @@ const GamePageContent: React.FC = () => {
   // Guided Solve Next Step Handler (Performs insertion, deletion, or traversal automatically)
   const handleGuidedSolveNextStep = () => {
     soundManager.playClick();
-    const currentStepObj = challenge.guidedSolveSteps[guidedStepIndex];
+    const currentStepObj = activeGuidedSteps[guidedStepIndex];
     if (!currentStepObj) return;
 
-    // LEVEL 4: DELETION CHALLENGE (All 3 cases handled automatically)
+    // LEVEL 4: DELETION CHALLENGE (6-step educational walkthrough showing empty slots and separate replacements)
     if (challenge.level === 4) {
-      if (guidedStepIndex === 0 || deletionStageIndex === 0) {
-        // Stage 1: Leaf Deletion (Node 20)
+      if (guidedStepIndex === 0) {
+        // Step 0 -> Step 1: Leaf Deletion (Node 20)
         soundManager.playInsert();
         const targetVal = 20;
         const newTree = buildTreeFromValues([50, 30, 70, 40, 60, 80]);
@@ -830,21 +1225,57 @@ const GamePageContent: React.FC = () => {
 
         setPlacementFeedback({
           type: 'success',
-          message: 'Guided Step 1: Deleted Leaf node 20 automatically! Parent 30 left pointer is now null. Next: Case 2 — Delete node 30.',
+          message: 'Guided Step 1: Deleted Leaf node 20! Parent 30 left pointer is now null. Next: Case 2 — Target Node 30.',
           pointsAwarded: earnedPoints,
         });
 
-        if (guidedStepIndex < challenge.guidedSolveSteps.length - 1) {
-          setGuidedStepIndex(1);
-        }
+        setGuidedStepIndex(1);
         return;
       }
 
-      if (guidedStepIndex === 1 || deletionStageIndex === 1) {
-        // Stage 2: Single Child Deletion (Node 30 with child 40)
+      if (guidedStepIndex === 1) {
+        // Step 1 -> Step 2: Delete Node 30, reveal [EMPTY] vacancy with child 40 intact!
         soundManager.playInsert();
+        const clone = JSON.parse(JSON.stringify(currentTree || buildTreeFromValues([50, 30, 70, 40, 60, 80]))) as BSTNode;
+        if (clone.left && (clone.left.value === 30 || clone.left.id)) {
+          const child40 = clone.left.right || { id: 'node-40', value: 40, left: null, right: null };
+          clone.left = {
+            id: 'empty-slot-30',
+            value: -1,
+            isEmptySlot: true,
+            label: 'EMPTY',
+            expectedReplacement: 40,
+            left: null,
+            right: child40,
+          };
+        }
+        setCurrentTree(clone);
+        setSelectedNodeForAction(null);
+        setDeletionPhase('replace_slot');
+        setEmptySlotInfo({
+          id: 'empty-slot-30',
+          deletedValue: 30,
+          expectedReplacement: 40,
+          parentId: 'node-50',
+          direction: 'left',
+          leftId: null,
+          rightId: 'node-40',
+        });
+        setDeletionStageIndex(1);
+
+        setPlacementFeedback({
+          type: 'info',
+          message: 'Node 30 deleted! Notice the [EMPTY] slot created where 30 was. Child 40 is ready for promotion. Click "Promote Child 40" to replace the empty slot.',
+        });
+
+        setGuidedStepIndex(2);
+        return;
+      }
+
+      if (guidedStepIndex === 2) {
+        // Step 2 -> Step 3: Promote child 40 into the empty slot!
+        soundManager.playSuccess();
         const targetVal = 30;
-        // Node 30 is deleted and child 40 is automatically promoted to replace it
         const newTree = buildTreeFromValues([50, 40, 70, 60, 80]);
         setCurrentTree(newTree);
         setSelectedNodeForAction(null);
@@ -862,18 +1293,52 @@ const GamePageContent: React.FC = () => {
 
         setPlacementFeedback({
           type: 'success',
-          message: 'Guided Step 2: Deleted node 30 and promoted child 40 automatically! Next: Case 3 — Delete Root 50.',
+          message: 'Stage 2 Complete: Child 40 promoted to replace deleted node 30! Next: Case 3 — Target Root 50.',
           pointsAwarded: earnedPoints,
         });
 
-        if (guidedStepIndex < challenge.guidedSolveSteps.length - 1) {
-          setGuidedStepIndex(2);
-        }
+        setGuidedStepIndex(3);
         return;
       }
 
-      if (guidedStepIndex >= 2 || deletionStageIndex >= 2) {
-        // Stage 3: Two Children Deletion (Root 50 replaced by Inorder Successor 60)
+      if (guidedStepIndex === 3) {
+        // Step 3 -> Step 4: Delete Root 50, reveal [EMPTY] vacancy at Root with subtrees intact!
+        soundManager.playInsert();
+        const clone = JSON.parse(JSON.stringify(currentTree || buildTreeFromValues([50, 40, 70, 60, 80]))) as BSTNode;
+        const emptyRoot: BSTNode = {
+          id: 'empty-slot-50',
+          value: -1,
+          isEmptySlot: true,
+          label: 'EMPTY',
+          expectedReplacement: 60,
+          left: clone.left,
+          right: clone.right,
+        };
+        setCurrentTree(emptyRoot);
+        setSelectedNodeForAction(null);
+        setDeletionPhase('replace_slot');
+        setEmptySlotInfo({
+          id: 'empty-slot-50',
+          deletedValue: 50,
+          expectedReplacement: 60,
+          parentId: null,
+          direction: 'root',
+          leftId: 'node-40',
+          rightId: 'node-70',
+        });
+        setDeletionStageIndex(2);
+
+        setPlacementFeedback({
+          type: 'info',
+          message: 'Root 50 deleted! Notice the [EMPTY] root vacancy. Inorder Successor (minimum node in right subtree: 60) will replace the root.',
+        });
+
+        setGuidedStepIndex(4);
+        return;
+      }
+
+      if (guidedStepIndex === 4) {
+        // Step 4 -> Step 5: Replace Root with In-order Successor 60!
         soundManager.playSuccess();
         const targetVal = 50;
         const newTree = buildTreeFromValues([60, 40, 70, 80]);
@@ -881,6 +1346,7 @@ const GamePageContent: React.FC = () => {
         setSelectedNodeForAction(null);
         setDeletionPhase('select_node');
         setEmptySlotInfo(null);
+        setDeletionStageIndex(2);
 
         const earnedPoints = 10;
         const updatedScores = { ...nodeScores, [targetVal]: earnedPoints };
@@ -892,60 +1358,39 @@ const GamePageContent: React.FC = () => {
 
         setPlacementFeedback({
           type: 'success',
-          message: 'Guided Step 3: Deleted Root 50 and replaced with Inorder Successor 60 automatically! All 3 deletion cases mastered!',
+          message: 'Stage 3 Complete: Inorder Successor 60 placed in Root position! All 3 BST Deletion Cases Mastered!',
           pointsAwarded: earnedPoints,
         });
 
-        triggerChallengeSuccess(newCorrect, updatedAttempts, updatedScores);
+        setGuidedStepIndex(5);
+        return;
+      }
+
+      if (guidedStepIndex === 5) {
+        // Step 5 -> Finish
+        triggerChallengeSuccess(3, totalAttempts + 1, { ...nodeScores, [50]: 10 });
         return;
       }
     }
 
-    // LEVEL 1, 2, 3: INSERTION CHALLENGES (Tree nodes inserted automatically)
-    if (challenge.level === 1 || challenge.level === 2 || challenge.level === 3) {
-      soundManager.playInsert();
-      const targetTreeValues = currentStepObj.currentTreeValues;
-      if (targetTreeValues && targetTreeValues.length > 0) {
-        const newTree = buildTreeFromValues(targetTreeValues);
-        setCurrentTree(newTree);
+    // LEVEL 1, 2, 3: INSERTION CHALLENGES (Step-by-step teaching tool)
+    if (challenge.level <= 3) {
+      if (!currentGuidedStep) return;
 
-        // Update remaining tray numbers
-        const remaining = (challenge.numbersToInsert || []).filter(
-          (val) => !targetTreeValues.includes(val)
-        );
-        setRemainingTrayNumbers(remaining);
-        setSelectedDragNumber(null);
-        setInvalidSlotId(null);
-
-        // Update scores
-        const newlyPlaced = targetTreeValues.filter((val) => !nodeScores[val]);
-        const updatedScores = { ...nodeScores };
-        newlyPlaced.forEach((v) => {
-          updatedScores[v] = 10;
-        });
-        setNodeScores(updatedScores);
-
-        const newCorrect = targetTreeValues.filter((v) =>
-          (challenge.numbersToInsert || []).includes(v)
-        ).length;
-        const updatedAttempts = Math.max(totalAttempts + newlyPlaced.length, newCorrect);
-        setTotalCorrect(newCorrect);
-        setTotalAttempts(updatedAttempts);
-
-        setPlacementFeedback({
-          type: 'success',
-          message: `Guided Step ${guidedStepIndex + 1}: Automatically inserted ${
-            currentStepObj.activeValue ? `node ${currentStepObj.activeValue}` : 'nodes'
-          } following BST invariants!`,
-          pointsAwarded: newlyPlaced.length * 10,
-        });
-
-        // If completed all numbers or at last guided step
-        if (remaining.length === 0 || guidedStepIndex >= challenge.guidedSolveSteps.length - 1) {
-          triggerChallengeSuccess(newCorrect, updatedAttempts, updatedScores);
-        } else {
-          setGuidedStepIndex((prev) => Math.min(challenge.guidedSolveSteps.length - 1, prev + 1));
+      const dynamicStep = currentGuidedStep as DynamicGuidedStep;
+      if (dynamicStep.isInsertAction && dynamicStep.valueToInsert !== undefined) {
+        soundManager.playInsert();
+        const targetSlot =
+          availableDropSlots.find((s) => s.id === dynamicStep.slotToInsert?.id) || dynamicStep.slotToInsert;
+        if (targetSlot) {
+          handleSlotDropOrClick(targetSlot, dynamicStep.valueToInsert);
         }
+        setGuidedStepIndex(0);
+        return;
+      }
+
+      if (guidedStepIndex < activeGuidedSteps.length - 1) {
+        setGuidedStepIndex((prev) => prev + 1);
       }
       return;
     }
@@ -1006,9 +1451,6 @@ const GamePageContent: React.FC = () => {
     const prevIdx = guidedStepIndex - 1;
     setGuidedStepIndex(prevIdx);
 
-    const prevStepObj = challenge.guidedSolveSteps[prevIdx];
-    if (!prevStepObj) return;
-
     if (challenge.level === 4) {
       if (prevIdx === 0) {
         setCurrentTree(buildTreeFromValues([50, 30, 70, 20, 40, 60, 80]));
@@ -1020,15 +1462,66 @@ const GamePageContent: React.FC = () => {
         setDeletionStageIndex(1);
         setDeletionPhase('select_node');
         setEmptySlotInfo(null);
+      } else if (prevIdx === 2) {
+        const clone = buildTreeFromValues([50, 30, 70, 40, 60, 80]);
+        if (clone.left) {
+          const child40 = clone.left.right || { id: 'node-40', value: 40, left: null, right: null };
+          clone.left = {
+            id: 'empty-slot-30',
+            value: -1,
+            isEmptySlot: true,
+            label: 'EMPTY',
+            expectedReplacement: 40,
+            left: null,
+            right: child40,
+          };
+        }
+        setCurrentTree(clone);
+        setDeletionStageIndex(1);
+        setDeletionPhase('replace_slot');
+        setEmptySlotInfo({
+          id: 'empty-slot-30',
+          deletedValue: 30,
+          expectedReplacement: 40,
+          parentId: 'node-50',
+          direction: 'left',
+          leftId: null,
+          rightId: 'node-40',
+        });
+      } else if (prevIdx === 3) {
+        setCurrentTree(buildTreeFromValues([50, 40, 70, 60, 80]));
+        setDeletionStageIndex(2);
+        setDeletionPhase('select_node');
+        setEmptySlotInfo(null);
+      } else if (prevIdx === 4) {
+        const clone = buildTreeFromValues([50, 40, 70, 60, 80]);
+        const emptyRoot: BSTNode = {
+          id: 'empty-slot-50',
+          value: -1,
+          isEmptySlot: true,
+          label: 'EMPTY',
+          expectedReplacement: 60,
+          left: clone.left,
+          right: clone.right,
+        };
+        setCurrentTree(emptyRoot);
+        setDeletionStageIndex(2);
+        setDeletionPhase('replace_slot');
+        setEmptySlotInfo({
+          id: 'empty-slot-50',
+          deletedValue: 50,
+          expectedReplacement: 60,
+          parentId: null,
+          direction: 'root',
+          leftId: 'node-40',
+          rightId: 'node-70',
+        });
       }
-    } else if (challenge.level === 1 || challenge.level === 2 || challenge.level === 3) {
-      if (prevStepObj.currentTreeValues) {
-        setCurrentTree(buildTreeFromValues(prevStepObj.currentTreeValues));
-        const remaining = (challenge.numbersToInsert || []).filter(
-          (val) => !prevStepObj.currentTreeValues!.includes(val)
-        );
-        setRemainingTrayNumbers(remaining);
-      }
+      return;
+    }
+
+    if (challenge.level <= 3) {
+      return;
     }
   };
 
@@ -1120,12 +1613,42 @@ const GamePageContent: React.FC = () => {
                 </p>
               </div>
 
-              {/* Action Buttons: Hint, Guided Solve, Reset */}
-              <div className="flex items-center gap-2">
+              {/* Action Buttons: Undo, Redo, Hint, Guided Solve, Reset */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  id="game-undo-btn"
+                  onClick={handleUndo}
+                  disabled={undoStack.length === 0}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors shadow-2xs ${
+                    undoStack.length > 0
+                      ? 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-pointer'
+                      : 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-slate-200 dark:border-slate-800'
+                  }`}
+                  title="Undo last insertion"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Undo</span>
+                </button>
+
+                <button
+                  id="game-redo-btn"
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors shadow-2xs ${
+                    redoStack.length > 0
+                      ? 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-pointer'
+                      : 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-slate-200 dark:border-slate-800'
+                  }`}
+                  title="Redo insertion"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Redo</span>
+                </button>
+
                 <button
                   id="game-hint-btn"
                   onClick={handleUseHint}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-2xs"
                   title="Need a hint?"
                 >
                   <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
@@ -1135,7 +1658,7 @@ const GamePageContent: React.FC = () => {
                 <button
                   id="game-guided-solve-btn"
                   onClick={() => setShowGuidedSolve(!showGuidedSolve)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer shadow-2xs ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer shadow-2xs ${
                     showGuidedSolve
                       ? 'bg-indigo-600 text-white border-indigo-700'
                       : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
@@ -1143,7 +1666,7 @@ const GamePageContent: React.FC = () => {
                   title="Toggle Guided Solve (Automatic step-by-step solver)"
                 >
                   <Compass className="w-3.5 h-3.5" />
-                  <span>Guided Solve</span>
+                  <span>{showGuidedSolve ? 'Stop Guided' : 'Guided Solve'}</span>
                 </button>
 
                 <button
@@ -1206,6 +1729,237 @@ const GamePageContent: React.FC = () => {
               )}
             </AnimatePresence>
 
+            {/* Top Queue Tray: Element Queue for Levels 1, 2, 3 */}
+            {(challenge.numbersToInsert || []).length > 0 && (
+              <div id="elements-top-tray" className="mt-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Queue ({challenge.numbersToInsert?.length || 0} total)</span>
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                      Step {challenge.numbersToInsert ? challenge.numbersToInsert.length - remainingTrayNumbers.length + 1 : 1} of {totalStepsInChallenge}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    {nextNumberToInsert !== null ? (
+                      <span>Next: <strong className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{nextNumberToInsert}</strong></span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 inline" /> All Placed!
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5 min-h-12">
+                  {challenge.numbersToInsert?.map((num, idx) => {
+                    const isPlaced = !remainingTrayNumbers.includes(num);
+                    const isNextTarget = remainingTrayNumbers[0] === num;
+                    const isSelected = selectedDragNumber === num;
+
+                    if (isPlaced) {
+                      return (
+                        <div
+                          key={`queue-chip-${num}-${idx}`}
+                          id={`tray-element-${num}`}
+                          className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1.5 opacity-85 select-none"
+                          title={`Node ${num} has been placed`}
+                        >
+                          <span>{num}</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        </div>
+                      );
+                    }
+
+                    if (isNextTarget) {
+                      return (
+                        <motion.button
+                          key={`queue-chip-${num}-${idx}`}
+                          id={`tray-element-${num}`}
+                          layout
+                          draggable
+                          onDragStart={(e: any) => handleChipDragStart(e, num)}
+                          onDragEnd={handleChipDragEnd}
+                          onPointerDown={(e: any) => handleChipPointerDown(e, num)}
+                          className={`relative px-4 py-2 rounded-xl font-mono text-sm font-black transition-all flex items-center gap-2 cursor-grab active:cursor-grabbing select-none shadow-md ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 scale-105'
+                              : 'bg-indigo-600 text-white ring-2 ring-indigo-300 dark:ring-indigo-700 hover:scale-105'
+                          }`}
+                          title={`Drag node ${num} into the tree`}
+                        >
+                          <span>{num}</span>
+                          <span className="text-[9px] uppercase tracking-wider bg-white/20 text-white px-1.5 py-0.5 rounded font-sans font-bold">
+                            Drag
+                          </span>
+                        </motion.button>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={`queue-chip-${num}-${idx}`}
+                        id={`tray-element-${num}`}
+                        className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-semibold bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center gap-1.5 opacity-70 select-none cursor-not-allowed"
+                        title={`Node ${num} is queued after node ${remainingTrayNumbers[0]}`}
+                      >
+                        <span>{num}</span>
+                        <span className="text-[9px] uppercase tracking-wider text-slate-400">Wait</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Dedicated Pedagogical Guide / Teacher Panel (AVL Guardian Style) */}
+            <div className="mt-3">
+              {showGuidedSolve && currentGuidedStep ? (
+                <div className="p-3.5 rounded-2xl border bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60 shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-600 text-white font-sans">
+                        Guided Step {guidedStepIndex + 1} of {activeGuidedSteps.length || 1}
+                      </span>
+                      <h4 className="text-xs font-bold text-indigo-950 dark:text-indigo-100">
+                        {currentGuidedStep.title}
+                      </h4>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        soundManager.playClick();
+                        setShowGuidedSolve(false);
+                        setGuidedStepIndex(0);
+                        setPlacementFeedback({
+                          type: 'info',
+                          message: 'Exited Guided Solve. Tree preserved — continue inserting nodes manually!',
+                        });
+                      }}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 cursor-pointer font-bold"
+                      title="Turn off Guided Solve"
+                    >
+                      Turn Off Guided Solve
+                    </button>
+                  </div>
+
+                  <p className="text-xs leading-relaxed text-indigo-900 dark:text-indigo-200">
+                    {currentGuidedStep.actionDescription}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      onClick={handleGuidedSolvePrevStep}
+                      disabled={guidedStepIndex === 0}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                        guidedStepIndex === 0
+                          ? 'opacity-40 cursor-not-allowed bg-white/40 text-slate-400 border-slate-200'
+                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 hover:bg-slate-50 cursor-pointer'
+                      }`}
+                    >
+                      ← Prev Step
+                    </button>
+
+                    <button
+                      onClick={handleGuidedSolveNextStep}
+                      className="px-4 py-1.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>
+                        {'isInsertAction' in currentGuidedStep && (currentGuidedStep as DynamicGuidedStep).isInsertAction
+                          ? `Insert Node ${(currentGuidedStep as DynamicGuidedStep).valueToInsert} →`
+                          : 'Next Step →'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : placementFeedback ? (
+                <div
+                  className={`p-3.5 rounded-2xl border shadow-2xs space-y-1 transition-all ${
+                    placementFeedback.type === 'error'
+                      ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60'
+                      : placementFeedback.type === 'success'
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60'
+                      : 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider font-sans text-white ${
+                          placementFeedback.type === 'error'
+                            ? 'bg-rose-600'
+                            : placementFeedback.type === 'success'
+                            ? 'bg-emerald-600'
+                            : 'bg-indigo-600'
+                        }`}
+                      >
+                        {placementFeedback.type === 'error'
+                          ? 'Try Again'
+                          : placementFeedback.type === 'success'
+                          ? 'Placed ✓'
+                          : 'Guide'}
+                      </span>
+                      <h4
+                        className={`text-xs font-bold ${
+                          placementFeedback.type === 'error'
+                            ? 'text-rose-950 dark:text-rose-100'
+                            : placementFeedback.type === 'success'
+                            ? 'text-emerald-950 dark:text-emerald-100'
+                            : 'text-indigo-950 dark:text-indigo-100'
+                        }`}
+                      >
+                        {placementFeedback.type === 'error'
+                          ? 'Incorrect Position'
+                          : placementFeedback.type === 'success'
+                          ? 'Correct Placement!'
+                          : 'BST Comparison Guide'}
+                      </h4>
+                    </div>
+
+                    {placementFeedback.pointsAwarded && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px]">
+                        +{placementFeedback.pointsAwarded} pts
+                      </span>
+                    )}
+                  </div>
+
+                  <p
+                    className={`text-xs leading-relaxed ${
+                      placementFeedback.type === 'error'
+                        ? 'text-rose-900 dark:text-rose-200'
+                        : placementFeedback.type === 'success'
+                        ? 'text-emerald-900 dark:text-emerald-200'
+                        : 'text-indigo-900 dark:text-indigo-200'
+                    }`}
+                  >
+                    {placementFeedback.message}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl border bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 shadow-2xs space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-700 text-white font-sans">
+                      Guide
+                    </span>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {nextNumberToInsert !== null
+                        ? `Ready to insert node ${nextNumberToInsert}`
+                        : 'Level Completed!'}
+                    </h4>
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                    {challenge.level <= 3
+                      ? `Drag active node chip ${nextNumberToInsert} from the queue above onto the correct empty slot in the tree. Follow BST comparison: smaller values go LEFT, larger values go RIGHT.`
+                      : challenge.level === 4
+                      ? `Drag target node ${currentLevel4Stage?.targetNode} into the 🗑️ Dustbin below to execute deletion.`
+                      : `Click nodes on the tree in exact ${activeTraversalType.toUpperCase()} order, then click Submit Answer.`}
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Interactive Tree SVG Canvas */}
             <div className="relative mt-4">
               <TreeCanvas
@@ -1241,8 +1995,23 @@ const GamePageContent: React.FC = () => {
                 }
                 invalidSlotId={invalidSlotId}
                 activeHoveredSlotId={hoveredDropSlotId}
+                comparingNodeId={
+                  showGuidedSolve && currentGuidedStep && 'comparingNodeId' in currentGuidedStep
+                    ? (currentGuidedStep as DynamicGuidedStep).comparingNodeId
+                    : null
+                }
+                guidedCorrectSlotId={
+                  showGuidedSolve && currentGuidedStep && 'guidedSlotId' in currentGuidedStep
+                    ? (currentGuidedStep as DynamicGuidedStep).guidedSlotId
+                    : null
+                }
+                comparisonBanner={
+                  showGuidedSolve && currentGuidedStep && 'banner' in currentGuidedStep
+                    ? (currentGuidedStep as DynamicGuidedStep).banner
+                    : undefined
+                }
                 onSlotClick={(slot) => {
-                  soundManager.playError();
+                  soundManager.playClick();
                   if (challenge.level === 4 && deletionPhase === 'replace_slot') {
                     setPlacementFeedback({
                       type: 'info',
@@ -1252,26 +2021,32 @@ const GamePageContent: React.FC = () => {
                     setPlacementFeedback({
                       type: 'info',
                       message: selectedDragNumber !== null
-                        ? `Drag node ${selectedDragNumber} and drop it directly onto this (+) slot to place it (nodes must be dragged into place)!`
-                        : 'Drag a node chip from the sequence tray and drop it directly onto this (+) slot to place it!',
+                        ? `Drag node ${selectedDragNumber} and drop it directly onto this target slot to place it!`
+                        : 'Drag the active node chip from the queue and drop it directly onto this target slot to place it!',
                     });
                   }
                 }}
-                onSlotDrop={(slot, val) => {
+                onSlotDrop={(slot, val, dropCoordinates) => {
                   if (challenge.level === 4 && deletionPhase === 'replace_slot') {
-                    handleReplacementDrop(val, slot);
+                    handleReplacementDrop(val, slot, dropCoordinates);
                   } else {
-                    handleSlotDropOrClick(slot, val);
+                    handleSlotDropOrClick(slot, val, dropCoordinates);
                   }
                 }}
                 onNodeClick={handleNodeClick}
+                onNodePointerDown={(e, node) => {
+                  if (challenge.level === 4) {
+                    setSelectedNodeForAction(node);
+                    handleChipPointerDown(e, node.value);
+                  }
+                }}
                 onNodeDragStart={(node) => {
                   setSelectedNodeForAction(node);
                 }}
                 height={380}
                 emptyMessage={
                   challenge.category === 'build_tree'
-                    ? 'Tree is currently empty. Drag the first number (Root) from the tray below into the central + slot.'
+                    ? 'Tree is currently empty. Drag the first number (Root) from the queue above into the central root slot.'
                     : 'Interactive BST Canvas'
                 }
               />
@@ -1314,43 +2089,43 @@ const GamePageContent: React.FC = () => {
               </AnimatePresence>
             </div>
 
-            {/* Bottom Tray: Numbers to Insert (Levels 1, 2, 3) */}
-            {(challenge.numbersToInsert || []).length > 0 && remainingTrayNumbers.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {/* Level 4: Replacement Candidates Tray (Draggable when replacement is required) */}
+            {challenge.level === 4 && deletionPhase === 'replace_slot' && emptySlotInfo && (
+              <div id="replacement-candidates-tray" className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>Sequence Numbers Tray ({remainingTrayNumbers.length} remaining)</span>
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Replacement Candidates (Drag & Drop into [EMPTY] vacancy)</span>
                   </span>
-                  <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-                    Drag node chip and drop directly onto a '+' slot in the tree
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    {deletionStageIndex === 1
+                      ? 'Drag child node 40 into the [EMPTY] slot'
+                      : 'Drag in-order successor 60 into the [EMPTY] slot'}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 min-h-14">
-                  {remainingTrayNumbers.map((num, idx) => {
+                <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 min-h-14">
+                  {(deletionStageIndex === 1 ? [40] : [40, 60, 70, 80]).map((num) => {
                     const isSelected = selectedDragNumber === num;
-                    const isNextTarget = challenge.level === 2 && idx === 0;
-
                     return (
                       <motion.button
-                        key={`${num}-${idx}`}
+                        key={`repl-${num}`}
+                        id={`tray-element-${num}`}
                         layout
                         draggable
                         onDragStart={(e: any) => handleChipDragStart(e, num)}
+                        onDragEnd={handleChipDragEnd}
                         onPointerDown={(e: any) => handleChipPointerDown(e, num)}
                         className={`relative px-4 py-2 rounded-xl font-mono text-sm font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-grab active:cursor-grabbing ${
                           isSelected
-                            ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 scale-105 shadow-md'
-                            : isNextTarget
-                            ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 border-2 border-indigo-500 animate-pulse'
-                            : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 hover:scale-105'
+                            ? 'bg-amber-600 text-white ring-2 ring-amber-400 scale-105 shadow-md'
+                            : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-amber-300 dark:border-amber-700 hover:border-amber-500 hover:scale-105'
                         }`}
                       >
                         <span>{num}</span>
-                        {isNextTarget && (
-                          <span className="text-[9px] uppercase tracking-wider bg-indigo-600 text-white px-1.5 py-0.2 rounded font-sans">
-                            Next
+                        {num === emptySlotInfo.expectedReplacement && (
+                          <span className="text-[9px] uppercase tracking-wider bg-amber-600 text-white px-1.5 py-0.2 rounded font-sans">
+                            Candidate
                           </span>
                         )}
                       </motion.button>
@@ -1359,8 +2134,6 @@ const GamePageContent: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Level 5 Traversal Output Sequence Tray */}
             {challenge.level === 5 && (
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1443,23 +2216,23 @@ const GamePageContent: React.FC = () => {
                   handleExecuteDeletion(selectedNodeForAction.value);
                 }
               }}
-              className={`p-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center relative overflow-hidden group ${
+              className={`p-5 rounded-2xl border-2 border-dashed transition-colors cursor-pointer text-center relative overflow-hidden group ${
                 isDustbinHovered
-                  ? 'bg-rose-100 dark:bg-rose-950/80 border-rose-500 scale-102 shadow-lg ring-2 ring-rose-400'
+                  ? 'bg-rose-100 dark:bg-rose-950/80 border-rose-500 shadow-lg ring-2 ring-rose-400'
                   : selectedNodeForAction
-                  ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-400 animate-pulse'
+                  ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-400'
                   : 'bg-slate-50 dark:bg-slate-900 border-indigo-300 dark:border-slate-700 hover:border-rose-400'
               }`}
             >
               <div className="flex flex-col items-center justify-center space-y-2">
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
                     isDustbinHovered || selectedNodeForAction
-                      ? 'bg-rose-600 text-white scale-110'
+                      ? 'bg-rose-600 text-white'
                       : 'bg-indigo-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400'
                   }`}
                 >
-                  <Trash2 className="w-6 h-6 animate-bounce" />
+                  <Trash2 className="w-6 h-6" />
                 </div>
 
                 <div>
@@ -1604,20 +2377,38 @@ const GamePageContent: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-200">
                     <Compass className="w-4 h-4 text-indigo-600" />
-                    <span>Guided Solve Steps</span>
+                    <span>Guided Solve Mode</span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-500">
-                    Step {guidedStepIndex + 1} of {challenge.guidedSolveSteps.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-slate-500">
+                      Step {guidedStepIndex + 1} of {activeGuidedSteps.length || 1}
+                    </span>
+                    <button
+                      onClick={() => {
+                        soundManager.playClick();
+                        setShowGuidedSolve(false);
+                        setGuidedStepIndex(0);
+                      }}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 cursor-pointer font-medium"
+                      title="Exit Guided Solve"
+                    >
+                      Exit
+                    </button>
+                  </div>
                 </div>
 
-                {challenge.guidedSolveSteps[guidedStepIndex] && (
+                {currentGuidedStep && (
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
-                    <h5 className="font-bold text-slate-900 dark:text-slate-100">
-                      {challenge.guidedSolveSteps[guidedStepIndex].title}
+                    <h5 className="font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                      <span>{currentGuidedStep.title}</span>
+                      {('guidedSlotId' in currentGuidedStep && (currentGuidedStep as DynamicGuidedStep).guidedSlotId) && (
+                        <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded font-sans font-semibold">
+                          Target Found ✓
+                        </span>
+                      )}
                     </h5>
                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {challenge.guidedSolveSteps[guidedStepIndex].actionDescription}
+                      {currentGuidedStep.actionDescription}
                     </p>
                   </div>
                 )}
@@ -1637,7 +2428,13 @@ const GamePageContent: React.FC = () => {
                     className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs active:scale-95 transition-all flex items-center gap-1.5"
                   >
                     <span>
-                      {guidedStepIndex >= challenge.guidedSolveSteps.length - 1
+                      {challenge.level <= 3
+                        ? (currentGuidedStep as DynamicGuidedStep)?.isInsertAction
+                          ? `Insert Node ${(currentGuidedStep as DynamicGuidedStep)?.valueToInsert} →`
+                          : 'Next Step →'
+                        : challenge.level === 4 && (currentGuidedStep as any)?.buttonLabel
+                        ? (currentGuidedStep as any).buttonLabel
+                        : guidedStepIndex >= activeGuidedSteps.length - 1
                         ? 'Complete Solve (Auto) ✓'
                         : 'Next Step (Auto) →'}
                     </span>
@@ -1696,7 +2493,7 @@ const GamePageContent: React.FC = () => {
       {/* Floating Drag Avatar for Universal Pointer Drag */}
       {pointerDrag?.isDragging && (
         <div
-          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600 text-white font-mono font-bold text-base shadow-2xl border-2 border-white ring-4 ring-indigo-400/70 select-none animate-pulse"
+          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600 text-white font-mono font-bold text-base shadow-2xl border-2 border-white ring-4 ring-indigo-400/70 select-none"
           style={{ left: pointerDrag.x, top: pointerDrag.y }}
         >
           {pointerDrag.value}
