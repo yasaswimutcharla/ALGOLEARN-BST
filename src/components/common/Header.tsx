@@ -18,7 +18,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { triggerActivityReset } from '../../utils/activityReset';
 import { soundManager } from '../../utils/audio';
 
-export type NavTab = 'home' | 'learn' | 'visual' | 'practice' | 'lab' | 'quiz' | 'game' | 'results';
+export type NavTab = 'home' | 'learn' | 'video' | 'visual' | 'practice' | 'lab' | 'quiz' | 'game' | 'results';
 
 interface HeaderProps {
   activeTab: NavTab;
@@ -45,8 +45,9 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Overview';
       case 'learn':
         return 'Learn';
+      case 'video':
       case 'visual':
-        return 'Visualize';
+        return 'Video';
       case 'game':
         return 'Game';
       case 'quiz':

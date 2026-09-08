@@ -3,7 +3,7 @@ import { Header, NavTab } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { HomePage } from './components/home/HomePage';
 import { LearnPage } from './components/learn/LearnPage';
-import { VisualRepresentationPage } from './components/visual/VisualRepresentationPage';
+import { VideoPage } from './components/video/VideoPage';
 import { PracticePage } from './components/practice/PracticePage';
 import { LabPage } from './components/lab/LabPage';
 import { QuizPage } from './components/quiz/QuizPage';
@@ -75,10 +75,8 @@ export default function App() {
                   onGoToGame={() => setActiveTab('game')}
                 />
               )}
-              {activeTab === 'visual' && (
-                <VisualRepresentationPage
-                  onGoToLearn={(idx) => handleSelectLearnTopic(idx)}
-                />
+              {(activeTab === 'video' || activeTab === 'visual') && (
+                <VideoPage />
               )}
               {activeTab === 'practice' && (
                 <PracticePage onGoToQuiz={() => setActiveTab('quiz')} />

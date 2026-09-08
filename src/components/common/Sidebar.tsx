@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   LayoutGrid,
   BookOpen,
-  Eye,
+  Video,
   Gamepad2,
   GraduationCap,
   Trophy,
@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'home', label: 'Overview', icon: LayoutGrid },
     { id: 'learn', label: 'Learn', icon: BookOpen },
-    { id: 'visual', label: 'Visualize', icon: Eye },
+    { id: 'video', label: 'Video', icon: Video },
     { id: 'game', label: 'Game', icon: Gamepad2 },
     { id: 'quiz', label: 'Quiz', icon: GraduationCap },
     { id: 'results', label: 'Progress', icon: Trophy },
@@ -70,8 +70,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return `${totalCompleted}/24`;
       case 'learn':
         return `${learnCompleted}/6`;
+      case 'video':
       case 'visual':
-        return `${visualizeCompleted}/3`;
+        return 'Upload';
       case 'game':
         return `${gameCompleted}/5`;
       case 'quiz':
@@ -130,6 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const Icon = item.icon;
             const isActive =
               activeTab === item.id ||
+              (item.id === 'video' && activeTab === 'visual') ||
               (item.id === 'learn' && (activeTab === 'practice' || activeTab === 'lab'));
 
             return (
