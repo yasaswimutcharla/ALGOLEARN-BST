@@ -492,8 +492,8 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
                 <div className="text-2xl sm:text-3xl font-extrabold text-amber-500 dark:text-amber-400 font-mono flex items-center justify-center gap-1">
                   <span>{masteredCount}</span>
                 </div>
-                <div className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                  MASTERED ★
+                <div className="text-[10px] sm:text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-tight">
+                  MASTERED
                 </div>
               </div>
 
@@ -507,7 +507,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
               </div>
 
               <div className="space-y-0.5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
                   {completedGameLevelsCount} <span className="text-base text-slate-400 dark:text-slate-500">/ 5</span>
                 </div>
                 <div className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
@@ -518,9 +518,13 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           </div>
 
           {/* Master Challenges row below */}
-          <div className="pt-3 border-t border-slate-200 dark:border-purple-900/30 flex items-center gap-2 text-xs text-purple-700 dark:text-purple-300 font-mono">
+          <div className="pt-3 border-t border-slate-200 dark:border-purple-900/30 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
             <Trophy className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-            <span>Master Challenges: {masterChallengesCount} / 4 Challenges</span>
+            <span>
+              <span className="font-bold uppercase tracking-tight">MASTER CHALLENGES:</span>{' '}
+              <span className="text-slate-900 dark:text-white font-bold">{masterChallengesCount}</span>
+              <span className="text-slate-400 dark:text-slate-500"> / 4 Challenges</span>
+            </span>
           </div>
         </div>
 

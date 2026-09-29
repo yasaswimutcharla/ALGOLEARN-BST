@@ -78,6 +78,7 @@ export interface LessonModule {
   keyConcept: string;
   whyItMatters: string;
   bulletPoints: string[];
+  keyRules?: string[];
   visualExample: {
     treeValues: number[];
     highlightValue?: number;
