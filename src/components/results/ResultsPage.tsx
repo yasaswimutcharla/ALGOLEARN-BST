@@ -482,35 +482,37 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           className="bg-white dark:bg-[#0b0f19] p-6 rounded-2xl border border-slate-200 dark:border-purple-900/30 shadow-xs dark:shadow-lg dark:shadow-purple-950/20 flex flex-col justify-between space-y-4"
         >
           <div className="space-y-3">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
               PERFORMANCE STATS
             </span>
 
             {/* 3 Stats in a row */}
             <div className="grid grid-cols-3 gap-2 text-center pt-1">
               <div className="space-y-0.5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-amber-500 dark:text-amber-400 font-mono flex items-center justify-center gap-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono flex items-center justify-center gap-1">
                   <span>{masteredCount}</span>
                 </div>
-                <div className="text-[10px] sm:text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-tight">
+                <div className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">
                   MASTERED
                 </div>
               </div>
 
               <div className="space-y-0.5 border-x border-slate-200 dark:border-purple-900/30 px-1">
-                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-                  {completedActivitiesCount} <span className="text-base text-slate-400 dark:text-slate-500">/ 20</span>
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono">
+                  <span className="text-slate-900 dark:text-white">{completedActivitiesCount}</span>{' '}
+                  <span className="text-base text-indigo-500/80 dark:text-indigo-300/80">/ 20</span>
                 </div>
-                <div className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                <div className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">
                   ACTIVITIES
                 </div>
               </div>
 
               <div className="space-y-0.5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-                  {completedGameLevelsCount} <span className="text-base text-slate-400 dark:text-slate-500">/ 5</span>
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono">
+                  <span className="text-slate-900 dark:text-white">{completedGameLevelsCount}</span>{' '}
+                  <span className="text-base text-indigo-500/80 dark:text-indigo-300/80">/ 5</span>
                 </div>
-                <div className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                <div className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">
                   LEVELS WON
                 </div>
               </div>
@@ -518,12 +520,12 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           </div>
 
           {/* Master Challenges row below */}
-          <div className="pt-3 border-t border-slate-200 dark:border-purple-900/30 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-            <Trophy className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+          <div className="pt-3 border-t border-slate-200 dark:border-purple-900/30 flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-mono">
+            <Trophy className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
             <span>
-              <span className="font-bold uppercase tracking-tight">MASTER CHALLENGES:</span>{' '}
-              <span className="text-slate-900 dark:text-white font-bold">{masterChallengesCount}</span>
-              <span className="text-slate-400 dark:text-slate-500"> / 4 Challenges</span>
+              <span className="font-bold uppercase tracking-tight text-indigo-600 dark:text-indigo-400">MASTER CHALLENGES:</span>{' '}
+              <span className="font-bold text-slate-900 dark:text-white">{masterChallengesCount}</span>
+              <span className="text-indigo-500/80 dark:text-indigo-300/80"> / 4 Challenges</span>
             </span>
           </div>
         </div>
