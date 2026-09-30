@@ -668,11 +668,10 @@ const GamePageContent: React.FC = () => {
         });
         return;
       }
-      setSelectedNodeForAction(node);
-      setSelectedDragNumber(node.value);
+      setSelectedNodeForAction(null);
       setPlacementFeedback({
         type: 'info',
-        message: `Node ${node.value} selected. Drag it directly to the 🗑️ Dustbin below the canvas to delete it!`,
+        message: `To delete node ${node.value}, drag it and drop it onto the 🗑️ Dustbin below!`,
       });
       return;
     }
@@ -974,6 +973,154 @@ const GamePageContent: React.FC = () => {
     window.addEventListener('pointercancel', handlePointerCancel);
   };
 
+  // True drag-and-drop deletion handler for Level 4 nodes (works with both mouse and touch)
+  const handleLevel4NodePointerDown = (e: React.PointerEvent, node: BSTNode) => {
+    if (challenge.level !== 4 || isChallengeComplete) return;
+    if (node.isEmptySlot) return;
+
+    const num = node.value;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let hasMoved = false;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+      if (dist > 4) {
+        hasMoved = true;
+      }
+      if (hasMoved) {
+        if (moveEvent.cancelable) {
+          moveEvent.preventDefault();
+        }
+        setPointerDrag({
+          isDragging: true,
+          value: num,
+          x: moveEvent.clientX,
+          y: moveEvent.clientY,
+        });
+        setSelectedDragNumber(num);
+
+        const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+
+        // Detect if hovered over the dustbin
+        let isOverDustbin = !!el?.closest('#game-dustbin-dropzone');
+        if (!isOverDustbin) {
+          const dbEl = document.getElementById('game-dustbin-dropzone');
+          if (dbEl) {
+            const rect = dbEl.getBoundingClientRect();
+            if (
+              moveEvent.clientX >= rect.left &&
+              moveEvent.clientX <= rect.right &&
+              moveEvent.clientY >= rect.top &&
+              moveEvent.clientY <= rect.bottom
+            ) {
+              isOverDustbin = true;
+            }
+          }
+        }
+        setIsDustbinHovered(isOverDustbin);
+
+        // In replace_slot phase, check if hovered over empty slot
+        if (deletionPhase === 'replace_slot') {
+          const slotEl = el?.closest('[data-drop-slot="true"]');
+          let matchedId = slotEl?.getAttribute('data-slot-id') || null;
+          setHoveredDropSlotId(matchedId);
+        }
+      }
+    };
+
+    const handlePointerCancel = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+      setPointerDrag(null);
+      setIsDustbinHovered(false);
+      setSelectedDragNumber(null);
+      setSelectedNodeForAction(null);
+      setHoveredDropSlotId(null);
+    };
+
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+
+      if (hasMoved) {
+        const el = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+
+        // 1. Check if released while positioned over the dustbin
+        let isOverDustbin = !!el?.closest('#game-dustbin-dropzone');
+        if (!isOverDustbin) {
+          const dbEl = document.getElementById('game-dustbin-dropzone');
+          if (dbEl) {
+            const rect = dbEl.getBoundingClientRect();
+            if (
+              upEvent.clientX >= rect.left &&
+              upEvent.clientX <= rect.right &&
+              upEvent.clientY >= rect.top &&
+              upEvent.clientY <= rect.bottom
+            ) {
+              isOverDustbin = true;
+            }
+          }
+        }
+
+        if (isOverDustbin) {
+          setIsDustbinHovered(false);
+          setPointerDrag(null);
+          setSelectedDragNumber(null);
+          setSelectedNodeForAction(null);
+          handleExecuteDeletion(num);
+          return;
+        }
+
+        // 2. In replace_slot phase, check if dropped on empty slot
+        if (deletionPhase === 'replace_slot') {
+          const slotEl = el?.closest('[data-drop-slot="true"]');
+          let targetSlotId = slotEl?.getAttribute('data-slot-id');
+          if (!targetSlotId) {
+            const slotElements = document.querySelectorAll('[data-drop-slot="true"]');
+            slotElements.forEach((sEl) => {
+              const rect = sEl.getBoundingClientRect();
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+              if (Math.hypot(upEvent.clientX - centerX, upEvent.clientY - centerY) <= 50) {
+                targetSlotId = sEl.getAttribute('data-slot-id');
+              }
+            });
+          }
+          if (targetSlotId) {
+            handleReplacementDrop(num, {
+              id: targetSlotId,
+              parentId: null,
+              direction: 'root',
+              x: 0,
+              y: 0,
+            }, { x: upEvent.clientX, y: upEvent.clientY });
+          }
+        }
+
+        // Released anywhere else: do NOT delete, restore node to normal position/state
+        setPointerDrag(null);
+        setIsDustbinHovered(false);
+        setSelectedDragNumber(null);
+        setSelectedNodeForAction(null);
+        setHoveredDropSlotId(null);
+      } else {
+        // Simple/normal click: do NOT delete node and do NOT trigger dustbin deletion
+        setPointerDrag(null);
+        setIsDustbinHovered(false);
+        setSelectedDragNumber(null);
+        setSelectedNodeForAction(null);
+        setHoveredDropSlotId(null);
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
+  };
+
   // Execute Deletion via Dustbin Drop or Direct Click
   const handleExecuteDeletion = (targetVal: number) => {
     if (!currentTree || isChallengeComplete) return;
@@ -1184,8 +1331,6 @@ const GamePageContent: React.FC = () => {
     const val = parseInt(textData, 10);
     if (!isNaN(val)) {
       handleExecuteDeletion(val);
-    } else if (selectedNodeForAction) {
-      handleExecuteDeletion(selectedNodeForAction.value);
     }
   };
 
@@ -2036,12 +2181,13 @@ const GamePageContent: React.FC = () => {
                 onNodeClick={handleNodeClick}
                 onNodePointerDown={(e, node) => {
                   if (challenge.level === 4) {
-                    setSelectedNodeForAction(node);
-                    handleChipPointerDown(e, node.value);
+                    handleLevel4NodePointerDown(e, node);
                   }
                 }}
                 onNodeDragStart={(node) => {
-                  setSelectedNodeForAction(node);
+                  if (challenge.level === 4) {
+                    setSelectedDragNumber(node.value);
+                  }
                 }}
                 height={380}
                 emptyMessage={
@@ -2211,24 +2357,17 @@ const GamePageContent: React.FC = () => {
               onDragOver={handleDustbinDragOver}
               onDragLeave={handleDustbinDragLeave}
               onDrop={handleDustbinDrop}
-              onClick={() => {
-                if (selectedNodeForAction) {
-                  handleExecuteDeletion(selectedNodeForAction.value);
-                }
-              }}
-              className={`p-5 rounded-2xl border-2 border-dashed transition-colors cursor-pointer text-center relative overflow-hidden group ${
+              className={`p-5 rounded-2xl border-2 border-dashed transition-all text-center relative overflow-hidden group select-none ${
                 isDustbinHovered
-                  ? 'bg-rose-100 dark:bg-rose-950/80 border-rose-500 shadow-lg ring-2 ring-rose-400'
-                  : selectedNodeForAction
-                  ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-400'
-                  : 'bg-slate-50 dark:bg-slate-900 border-indigo-300 dark:border-slate-700 hover:border-rose-400'
+                  ? 'bg-rose-100 dark:bg-rose-950/80 border-rose-500 shadow-xl ring-4 ring-rose-400/70 scale-[1.02]'
+                  : 'bg-slate-50 dark:bg-slate-900 border-indigo-300 dark:border-slate-700'
               }`}
             >
               <div className="flex flex-col items-center justify-center space-y-2">
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
-                    isDustbinHovered || selectedNodeForAction
-                      ? 'bg-rose-600 text-white'
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                    isDustbinHovered
+                      ? 'bg-rose-600 text-white scale-110 shadow-lg shadow-rose-600/30'
                       : 'bg-indigo-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400'
                   }`}
                 >
@@ -2240,9 +2379,9 @@ const GamePageContent: React.FC = () => {
                     🗑️ BST Dustbin / Delete Zone
                   </h4>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                    {selectedNodeForAction
-                      ? `Selected: Node ${selectedNodeForAction.value} — Click or drop here to Delete!`
-                      : 'Drag any node from the tree and drop it here to delete.'}
+                    {isDustbinHovered
+                      ? 'Release node here to delete!'
+                      : 'Drag target node from the tree and drop it here to delete.'}
                   </p>
                 </div>
 
@@ -2493,7 +2632,11 @@ const GamePageContent: React.FC = () => {
       {/* Floating Drag Avatar for Universal Pointer Drag */}
       {pointerDrag?.isDragging && (
         <div
-          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600 text-white font-mono font-bold text-base shadow-2xl border-2 border-white ring-4 ring-indigo-400/70 select-none"
+          className={`fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-full font-mono font-bold text-base shadow-2xl border-2 select-none transition-transform duration-75 ${
+            isDustbinHovered
+              ? 'bg-rose-600 text-white border-white ring-4 ring-rose-400/80 scale-110'
+              : 'bg-indigo-600 text-white border-white ring-4 ring-indigo-400/70'
+          }`}
           style={{ left: pointerDrag.x, top: pointerDrag.y }}
         >
           {pointerDrag.value}
