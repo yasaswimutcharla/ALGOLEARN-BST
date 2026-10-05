@@ -27,6 +27,8 @@ export interface UserProgressContextType {
   completeLesson: (lessonId: string) => void;
   completePractice: (practiceId: string) => void;
   completeGameChallenge: (challengeId: string) => void;
+  completedVisualizeLessons: string[];
+  completeVisualizeLesson: (lessonId: string) => void;
   recordQuizScore: (scorePercentage: number) => void;
   updateGameScore: (gameKey: 'rush' | 'detective' | 'speedrun', score: number) => void;
   unlockBadge: (badgeId: string) => void;
@@ -250,6 +252,28 @@ export const UserProgressProvider: React.FC<{
     return {};
   });
 
+  // Track completed Visualize animation lessons
+  const [completedVisualizeLessons, setCompletedVisualizeLessons] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('bst_explorer_visualize_completed_v1');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {}
+    return [];
+  });
+
+  const completeVisualizeLesson = (lessonId: string) => {
+    setCompletedVisualizeLessons((prev) => {
+      if (prev.includes(lessonId)) return prev;
+      const updated = [...prev, lessonId];
+      try {
+        localStorage.setItem('bst_explorer_visualize_completed_v1', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
   // Persist teams
   useEffect(() => {
     try {
@@ -358,7 +382,9 @@ export const UserProgressProvider: React.FC<{
       localStorage.setItem(STORAGE_KEY_MAIN, JSON.stringify(freshZero));
       localStorage.setItem(STORAGE_KEY_DEMO, JSON.stringify(freshZero));
       localStorage.setItem(STORAGE_KEY_PROFILE_MODE, 'demo');
+      localStorage.removeItem('bst_explorer_visualize_completed_v1');
     } catch {}
+    setCompletedVisualizeLessons([]);
     setQuizAnsweredCount(0);
     setMainStats(freshZero);
     setDemoStats(freshZero);
@@ -583,7 +609,9 @@ export const UserProgressProvider: React.FC<{
       localStorage.setItem(STORAGE_KEY_MAIN, JSON.stringify(freshZero));
       localStorage.setItem(STORAGE_KEY_DEMO, JSON.stringify(freshZero));
       localStorage.setItem(STORAGE_KEY_PROFILE_MODE, 'main');
+      localStorage.removeItem('bst_explorer_visualize_completed_v1');
     } catch {}
+    setCompletedVisualizeLessons([]);
     setQuizAnsweredCount(0);
     setMainStats(freshZero);
     setDemoStats(freshZero);
@@ -626,6 +654,8 @@ export const UserProgressProvider: React.FC<{
         completeLesson,
         completePractice,
         completeGameChallenge,
+        completedVisualizeLessons,
+        completeVisualizeLesson,
         recordQuizScore,
         updateGameScore,
         unlockBadge,

@@ -1,1144 +1,1175 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Upload,
   Play,
   Pause,
-  RotateCcw,
-  Volume2,
-  VolumeX,
-  Maximize2,
-  Minimize2,
-  FastForward,
-  Rewind,
-  FileVideo,
-  Download,
-  Camera,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  ArrowRight,
   CheckCircle2,
-  AlertCircle,
-  Film,
-  Trash2,
-  Clock,
-  HardDrive,
-  Monitor,
-  Link as LinkIcon,
-  BookmarkPlus,
-  Tag,
-  Share2,
-  Sparkles,
-  Repeat,
-  Tv,
+  Binary,
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
+import { useUserProgress } from '../../context/UserProgressContext';
 
-export interface VideoMetadata {
-  name: string;
-  sizeFormatted: string;
-  sizeBytes: number;
-  type: string;
-  duration: number;
-  width: number;
-  height: number;
-  aspectRatio: string;
-  uploadedAt: string;
-  isSample?: boolean;
+export type VisualizerTopic =
+  | 'bst-rule'
+  | 'insertion'
+  | 'search'
+  | 'deletion-case-1'
+  | 'deletion-case-2'
+  | 'deletion-case-3'
+  | 'inorder'
+  | 'preorder'
+  | 'postorder';
+
+export type PlaySpeed = '0.5x' | '1x' | '1.5x' | '2x';
+
+interface TreeNodeData {
+  value: number;
+  x: number;
+  y: number;
+  label?: string;
+  status?: 'default' | 'active' | 'visited' | 'success' | 'danger' | 'successor';
 }
 
-export interface VideoBookmark {
-  id: string;
-  timestamp: number;
-  title: string;
-  createdAt: string;
+interface TreeEdgeData {
+  from: number;
+  to: number;
+  isHighlighted?: boolean;
 }
 
-const SAMPLE_VIDEOS = [
-  {
-    title: 'Binary Tree Traversal Demo',
-    desc: 'Sample educational demonstration video (MP4)',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    size: '15.4 MB',
-    type: 'video/mp4',
-  },
-  {
-    title: 'Algorithm Animation Clip',
-    desc: 'Short sample clip for video testing (MP4)',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    size: '158 MB',
-    type: 'video/mp4',
-  },
-];
+interface AnimationStep {
+  stepNumber: number;
+  totalSteps: number;
+  explanation: string;
+  comparisonText?: string;
+  comparisonDirection?: 'left' | 'right' | 'equal' | 'found' | 'none';
+  nodes: TreeNodeData[];
+  edges: TreeEdgeData[];
+  traversalOutput?: number[];
+  emptySlot?: { x: number; y: number; label: string } | null;
+}
 
-export const VideoPage: React.FC = () => {
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
-  const [videoMeta, setVideoMeta] = useState<VideoMetadata | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
+// Standard coordinates for [50, 30, 20, 40, 70]
+const POS_50: TreeNodeData = { value: 50, x: 300, y: 55 };
+const POS_30: TreeNodeData = { value: 30, x: 180, y: 140 };
+const POS_70: TreeNodeData = { value: 70, x: 420, y: 140 };
+const POS_20: TreeNodeData = { value: 20, x: 110, y: 225 };
+const POS_40: TreeNodeData = { value: 40, x: 250, y: 225 };
+const POS_60: TreeNodeData = { value: 60, x: 360, y: 225 }; // Left child of 70
+const POS_35: TreeNodeData = { value: 35, x: 215, y: 305 }; // Left child of 40 (Case 2)
+
+const SPEED_MS: Record<PlaySpeed, number> = {
+  '0.5x': 2000,
+  '1x': 1000,
+  '1.5x': 666,
+  '2x': 500,
+};
+
+// Static Step Generators
+function getBstRuleSteps(): AnimationStep[] {
+  return [
+    {
+      stepNumber: 1,
+      totalSteps: 5,
+      explanation: 'Start with 50 as the root node of our Binary Search Tree.',
+      comparisonText: 'Root Node: 50',
+      comparisonDirection: 'none',
+      nodes: [{ ...POS_50, status: 'active', label: 'Root' }],
+      edges: [],
+    },
+    {
+      stepNumber: 2,
+      totalSteps: 5,
+      explanation: '30 is smaller than 50, so it is placed on the left.',
+      comparisonText: '30 < 50 → Go Left',
+      comparisonDirection: 'left',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'active', label: 'Left' },
+      ],
+      edges: [{ from: 50, to: 30, isHighlighted: true }],
+    },
+    {
+      stepNumber: 3,
+      totalSteps: 5,
+      explanation: '20 is less than 50, and 20 is less than 30, so it goes to the left of 30.',
+      comparisonText: '20 < 50 → Left, 20 < 30 → Go Left',
+      comparisonDirection: 'left',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'visited' },
+        { ...POS_20, status: 'active', label: 'Left' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 4,
+      totalSteps: 5,
+      explanation: '40 is less than 50, but 40 is greater than 30, so it goes to the right of 30.',
+      comparisonText: '40 < 50 → Left, 40 > 30 → Go Right',
+      comparisonDirection: 'right',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'visited' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'active', label: 'Right' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 5,
+      totalSteps: 5,
+      explanation: '70 is greater than 50, so it is placed to the right of the root.',
+      comparisonText: '70 > 50 → Go Right',
+      comparisonDirection: 'right',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+        { ...POS_70, status: 'success', label: 'Right' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: true },
+      ],
+    },
+  ];
+}
+
+function getInsertionSteps(): AnimationStep[] {
+  return [
+    {
+      stepNumber: 1,
+      totalSteps: 5,
+      explanation: 'Step 1: Highlight 50. 60 > 50 → Go Right.',
+      comparisonText: '60 > 50 → Go Right',
+      comparisonDirection: 'right',
+      nodes: [
+        { ...POS_50, status: 'active', label: 'Compare' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: true },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+    },
+    {
+      stepNumber: 2,
+      totalSteps: 5,
+      explanation: 'Step 2: Highlight 70. 60 < 70 → Go Left.',
+      comparisonText: '60 < 70 → Go Left',
+      comparisonDirection: 'left',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'active', label: 'Compare' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: true },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+    },
+    {
+      stepNumber: 3,
+      totalSteps: 5,
+      explanation: 'Step 3: Show the empty left-child position under 70.',
+      comparisonText: 'Empty left-child slot under 70',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'visited' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: true },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+      emptySlot: { x: POS_60.x, y: POS_60.y, label: 'Insert 60' },
+    },
+    {
+      stepNumber: 4,
+      totalSteps: 5,
+      explanation: 'Step 4: Animate node 60 into that position.',
+      comparisonText: 'Attach 60 to node 70',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'visited' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+        { ...POS_60, status: 'success', label: '60' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+        { from: 70, to: 60, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 5,
+      totalSteps: 5,
+      explanation: 'Step 5: Highlight the completed tree and show "60 inserted successfully!"',
+      comparisonText: '60 inserted successfully!',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+        { ...POS_60, status: 'success', label: '60' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+        { from: 70, to: 60, isHighlighted: false },
+      ],
+    },
+  ];
+}
+
+function getSearchSteps(): AnimationStep[] {
+  return [
+    {
+      stepNumber: 1,
+      totalSteps: 3,
+      explanation: 'Step 1: Highlight 50. Show "40 < 50 → Go Left."',
+      comparisonText: '40 < 50 → Go Left',
+      comparisonDirection: 'left',
+      nodes: [
+        { ...POS_50, status: 'active', label: 'Compare' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: true },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+    },
+    {
+      stepNumber: 2,
+      totalSteps: 3,
+      explanation: 'Step 2: Highlight 30. Show "40 > 30 → Go Right."',
+      comparisonText: '40 > 30 → Go Right',
+      comparisonDirection: 'right',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'active', label: 'Compare' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: true },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 3,
+      totalSteps: 3,
+      explanation: 'Step 3: Highlight 40. Show "40 = 40 → Value found!" Search path is 50 → 30 → 40.',
+      comparisonText: '40 = 40 → Value found!',
+      comparisonDirection: 'found',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'visited' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'success', label: 'Found!' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: true },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: true },
+      ],
+    },
+  ];
+}
+
+function getDeletionCase1Steps(): AnimationStep[] {
+  // Case 1: Delete Leaf Node (20)
+  return [
+    {
+      stepNumber: 1,
+      totalSteps: 4,
+      explanation: 'Step 1: Highlight the path used to find 20 (50 → 30 → 20).',
+      comparisonText: 'Search path: 50 → 30 → 20',
+      comparisonDirection: 'left',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'visited' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'active', label: 'Target' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: true },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: true },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+    },
+    {
+      stepNumber: 2,
+      totalSteps: 4,
+      explanation: 'Step 2: Highlight node 20. Node 20 has no children (it is a leaf node).',
+      comparisonText: 'Node 20 has 0 children (Leaf)',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'danger', label: 'Leaf' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: true },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+    },
+    {
+      stepNumber: 3,
+      totalSteps: 4,
+      explanation: 'Step 3: Animate the leaf node disappearing. Set 30.left to null.',
+      comparisonText: 'Removing leaf node 20...',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'active' },
+        { ...POS_70, status: 'default' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+    },
+    {
+      stepNumber: 4,
+      totalSteps: 4,
+      explanation: '20 has no children, so we can simply remove it. 30, 40, 50, and 70 stay in their correct positions.',
+      comparisonText: 'Deletion complete: 20 removed',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'success' },
+        { ...POS_70, status: 'default' },
+        { ...POS_40, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: false },
+      ],
+    },
+  ];
+}
+
+function getDeletionCase2Steps(): AnimationStep[] {
+  // Case 2: Delete Node with One Child (40, which has child 35)
+  return [
+    {
+      stepNumber: 1,
+      totalSteps: 4,
+      explanation: 'Step 1: Highlight the path to 40 (50 → 30 → 40). Notice 35 was added as 40’s child to demonstrate this case.',
+      comparisonText: 'Search path: 50 → 30 → 40',
+      comparisonDirection: 'right',
+      nodes: [
+        { ...POS_50, status: 'visited' },
+        { ...POS_30, status: 'visited' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'active', label: 'Target' },
+        { ...POS_35, status: 'default', label: 'Child (35)' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: true },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: true },
+        { from: 40, to: 35, isHighlighted: false },
+      ],
+    },
+    {
+      stepNumber: 2,
+      totalSteps: 4,
+      explanation: 'Step 2: Highlight node 40 and its only child, 35.',
+      comparisonText: '40 has exactly 1 child: 35',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'danger', label: 'Delete 40' },
+        { ...POS_35, status: 'successor', label: 'Only Child' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: true },
+        { from: 40, to: 35, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 3,
+      totalSteps: 4,
+      explanation: 'Step 3: Animate 35 moving into 40’s position, taking its place.',
+      comparisonText: 'Promoting child 35 to 40’s position',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'visited' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { value: 35, x: POS_40.x, y: POS_40.y, status: 'success', label: 'Promoted' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 35, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 4,
+      totalSteps: 4,
+      explanation: '40 has one child, so its child takes its place. Remove the old 40 node. The resulting BST is valid.',
+      comparisonText: 'Valid BST preserved: 35 replaces 40',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'default' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { value: 35, x: POS_40.x, y: POS_40.y, status: 'default', label: '35' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 35, isHighlighted: false },
+      ],
+    },
+  ];
+}
+
+function getDeletionCase3Steps(): AnimationStep[] {
+  // Case 3: Delete Node with Two Children (30)
+  return [
+    {
+      stepNumber: 1,
+      totalSteps: 5,
+      explanation: 'Step 1: Highlight node 30. Highlight its left child (20) and right child (40).',
+      comparisonText: 'Node 30 has two children: 20 and 40',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'danger', label: 'Delete 30' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'active', label: 'Left' },
+        { ...POS_40, status: 'active', label: 'Right' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: true },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: true },
+        { from: 30, to: 40, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 2,
+      totalSteps: 5,
+      explanation: 'Step 2: Find the inorder successor (the smallest value in the right subtree).',
+      comparisonText: 'Finding inorder successor in right subtree...',
+      comparisonDirection: 'right',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'danger', label: 'Target' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'successor', label: 'Right Subtree' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 3,
+      totalSteps: 5,
+      explanation: 'Step 3: Clearly highlight 40 and show "Smallest value in the right subtree: 40."',
+      comparisonText: 'Smallest value in the right subtree: 40',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { ...POS_30, status: 'danger', label: 'Replace me' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+        { ...POS_40, status: 'successor', label: 'Successor: 40' },
+      ],
+      edges: [
+        { from: 50, to: 30, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 30, to: 20, isHighlighted: false },
+        { from: 30, to: 40, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 4,
+      totalSteps: 5,
+      explanation: 'Step 4: Animate replacing 30 with 40 and remove the old successor node from its original position.',
+      comparisonText: 'Copy 40 into node 30, remove original 40',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { value: 40, x: POS_30.x, y: POS_30.y, status: 'success', label: 'Replaced with 40' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 40, isHighlighted: true },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 40, to: 20, isHighlighted: true },
+      ],
+    },
+    {
+      stepNumber: 5,
+      totalSteps: 5,
+      explanation: '30 has two children. We replace it with the next larger value, 40. The resulting BST is valid.',
+      comparisonText: 'Valid BST preserved: 20 < 40 < 50 < 70',
+      comparisonDirection: 'none',
+      nodes: [
+        { ...POS_50, status: 'default' },
+        { value: 40, x: POS_30.x, y: POS_30.y, status: 'default', label: '40' },
+        { ...POS_70, status: 'default' },
+        { ...POS_20, status: 'default' },
+      ],
+      edges: [
+        { from: 50, to: 40, isHighlighted: false },
+        { from: 50, to: 70, isHighlighted: false },
+        { from: 40, to: 20, isHighlighted: false },
+      ],
+    },
+  ];
+}
+
+function getInorderSteps(): AnimationStep[] {
+  const order = [20, 30, 40, 50, 70];
+  const baseNodes = [POS_50, POS_30, POS_70, POS_20, POS_40];
+  const baseEdges = [
+    { from: 50, to: 30, isHighlighted: false },
+    { from: 50, to: 70, isHighlighted: false },
+    { from: 30, to: 20, isHighlighted: false },
+    { from: 30, to: 40, isHighlighted: false },
+  ];
+
+  const explanations = [
+    'Visit the left side first: leftmost node 20.',
+    'Visit the node next: parent node 30.',
+    'Visit the right side: node 40.',
+    'Visit the root node: 50.',
+    'Visit the right side of the tree: 70. Notice the output is in sorted ascending order!',
+  ];
+
+  return order.map((val, idx) => {
+    const outputSoFar = order.slice(0, idx + 1);
+    return {
+      stepNumber: idx + 1,
+      totalSteps: 5,
+      explanation: explanations[idx],
+      comparisonText: `Visiting node: ${val} (Left → Node → Right)`,
+      comparisonDirection: 'none',
+      nodes: baseNodes.map((n) => ({
+        ...n,
+        status: n.value === val ? 'success' : outputSoFar.includes(n.value) ? 'visited' : 'default',
+      })),
+      edges: baseEdges,
+      traversalOutput: outputSoFar,
+    };
+  });
+}
+
+function getPreorderSteps(): AnimationStep[] {
+  const order = [50, 30, 20, 40, 70];
+  const baseNodes = [POS_50, POS_30, POS_70, POS_20, POS_40];
+  const baseEdges = [
+    { from: 50, to: 30, isHighlighted: false },
+    { from: 50, to: 70, isHighlighted: false },
+    { from: 30, to: 20, isHighlighted: false },
+    { from: 30, to: 40, isHighlighted: false },
+  ];
+
+  const explanations = [
+    'Visit the node first: root node 50.',
+    'Visit its left side: node 30.',
+    'Visit the left side of 30: node 20.',
+    'Visit the right side of 30: node 40.',
+    'Visit the right side of root 50: node 70.',
+  ];
+
+  return order.map((val, idx) => {
+    const outputSoFar = order.slice(0, idx + 1);
+    return {
+      stepNumber: idx + 1,
+      totalSteps: 5,
+      explanation: explanations[idx],
+      comparisonText: `Visiting node: ${val} (Node → Left → Right)`,
+      comparisonDirection: 'none',
+      nodes: baseNodes.map((n) => ({
+        ...n,
+        status: n.value === val ? 'success' : outputSoFar.includes(n.value) ? 'visited' : 'default',
+      })),
+      edges: baseEdges,
+      traversalOutput: outputSoFar,
+    };
+  });
+}
+
+function getPostorderSteps(): AnimationStep[] {
+  const order = [20, 40, 30, 70, 50];
+  const baseNodes = [POS_50, POS_30, POS_70, POS_20, POS_40];
+  const baseEdges = [
+    { from: 50, to: 30, isHighlighted: false },
+    { from: 50, to: 70, isHighlighted: false },
+    { from: 30, to: 20, isHighlighted: false },
+    { from: 30, to: 40, isHighlighted: false },
+  ];
+
+  const explanations = [
+    'Visit the left side first: bottom-left leaf 20.',
+    'Visit the right side of 30: node 40.',
+    'Visit the node: parent 30 (visited after both children).',
+    'Visit the right side of root: node 70.',
+    'Visit the root node last: 50.',
+  ];
+
+  return order.map((val, idx) => {
+    const outputSoFar = order.slice(0, idx + 1);
+    return {
+      stepNumber: idx + 1,
+      totalSteps: 5,
+      explanation: explanations[idx],
+      comparisonText: `Visiting node: ${val} (Left → Right → Node)`,
+      comparisonDirection: 'none',
+      nodes: baseNodes.map((n) => ({
+        ...n,
+        status: n.value === val ? 'success' : outputSoFar.includes(n.value) ? 'visited' : 'default',
+      })),
+      edges: baseEdges,
+      traversalOutput: outputSoFar,
+    };
+  });
+}
+
+interface VideoPageProps {
+  initialTopic?: VisualizerTopic;
+}
+
+export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
+  const { completedVisualizeLessons, completeVisualizeLesson } = useUserProgress();
+  const [activeTopic, setActiveTopic] = useState<VisualizerTopic>(initialTopic || 'bst-rule');
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(0);
-  const [volume, setVolume] = useState<number>(1);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
-  const [isLooping, setIsLooping] = useState<boolean>(false);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isPiPActive, setIsPiPActive] = useState<boolean>(false);
-  const [showSpeedMenu, setShowSpeedMenu] = useState<boolean>(false);
-  const [urlInput, setUrlInput] = useState<string>('');
-  const [urlError, setUrlError] = useState<string | null>(null);
-  const [bookmarks, setBookmarks] = useState<VideoBookmark[]>([]);
-  const [newBookmarkTitle, setNewBookmarkTitle] = useState<string>('');
-  const [isAddingBookmark, setIsAddingBookmark] = useState<boolean>(false);
-  const [snapshotPreview, setSnapshotPreview] = useState<string | null>(null);
-  const [uploadSuccessToast, setUploadSuccessToast] = useState<string | null>(null);
+  const [speed, setSpeed] = useState<PlaySpeed>('1x');
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const playerContainerRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const formatTime = (seconds: number): string => {
-    if (isNaN(seconds) || seconds < 0) return '00:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  // Load a video from a File object
-  const handleFileLoad = (file: File) => {
-    if (!file.type.startsWith('video/')) {
-      alert('Please upload a valid video file (.mp4, .webm, .ogg, .mov, etc.)');
-      return;
-    }
-
-    // Revoke previous object URL if any
-    if (videoSrc && videoSrc.startsWith('blob:')) {
-      URL.revokeObjectURL(videoSrc);
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-    setVideoSrc(objectUrl);
-    setBookmarks([]);
-    setIsPlaying(false);
-    setCurrentTime(0);
-
-    setVideoMeta({
-      name: file.name,
-      sizeFormatted: formatFileSize(file.size),
-      sizeBytes: file.size,
-      type: file.type || 'video/mp4',
-      duration: 0,
-      width: 0,
-      height: 0,
-      aspectRatio: '16:9',
-      uploadedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSample: false,
-    });
-
-    setUploadSuccessToast(`"${file.name}" uploaded successfully!`);
-    setTimeout(() => setUploadSuccessToast(null), 4000);
-    soundManager.playSuccess();
-  };
-
-  // Handle URL video loading
-  const handleUrlLoad = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!urlInput.trim()) return;
-
-    try {
-      new URL(urlInput.trim());
-    } catch {
-      setUrlError('Please enter a valid video URL (e.g. https://.../video.mp4)');
-      return;
-    }
-
-    setUrlError(null);
-    if (videoSrc && videoSrc.startsWith('blob:')) {
-      URL.revokeObjectURL(videoSrc);
-    }
-
-    const cleanUrl = urlInput.trim();
-    const urlParts = cleanUrl.split('/');
-    const inferredName = urlParts[urlParts.length - 1] || 'Web Video Stream';
-
-    setVideoSrc(cleanUrl);
-    setBookmarks([]);
-    setIsPlaying(false);
-    setCurrentTime(0);
-
-    setVideoMeta({
-      name: inferredName,
-      sizeFormatted: 'Remote Stream',
-      sizeBytes: 0,
-      type: 'video/mp4',
-      duration: 0,
-      width: 0,
-      height: 0,
-      aspectRatio: '16:9',
-      uploadedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSample: false,
-    });
-
-    setUrlInput('');
-    setUploadSuccessToast('Remote video stream loaded!');
-    setTimeout(() => setUploadSuccessToast(null), 4000);
-    soundManager.playSuccess();
-  };
-
-  // Load sample video
-  const handleLoadSample = (sample: typeof SAMPLE_VIDEOS[0]) => {
-    if (videoSrc && videoSrc.startsWith('blob:')) {
-      URL.revokeObjectURL(videoSrc);
-    }
-    setVideoSrc(sample.url);
-    setBookmarks([]);
-    setIsPlaying(false);
-    setCurrentTime(0);
-
-    setVideoMeta({
-      name: sample.title,
-      sizeFormatted: sample.size,
-      sizeBytes: 0,
-      type: sample.type,
-      duration: 0,
-      width: 1280,
-      height: 720,
-      aspectRatio: '16:9',
-      uploadedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSample: true,
-    });
-
-    setUploadSuccessToast(`Loaded sample: "${sample.title}"`);
-    setTimeout(() => setUploadSuccessToast(null), 3000);
-    soundManager.playClick();
-  };
-
-  // Drag and Drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileLoad(e.dataTransfer.files[0]);
-    }
-  };
-
-  // Video playback listeners & controls
-  const togglePlay = useCallback(() => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused || videoRef.current.ended) {
-      videoRef.current.play().catch(() => {
-        // Autoplay policy or interrupt
-      });
-      setIsPlaying(true);
-    } else {
-      videoRef.current.pause();
+  // Synchronize when initialTopic prop changes
+  useEffect(() => {
+    if (initialTopic) {
+      setActiveTopic(initialTopic);
+      setCurrentStepIndex(0);
       setIsPlaying(false);
     }
-  }, []);
+  }, [initialTopic]);
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const targetTime = parseFloat(e.target.value);
-    setCurrentTime(targetTime);
-    if (videoRef.current) {
-      videoRef.current.currentTime = targetTime;
+  // Compute steps deterministically
+  const steps: AnimationStep[] = useMemo(() => {
+    switch (activeTopic) {
+      case 'bst-rule':
+        return getBstRuleSteps();
+      case 'insertion':
+        return getInsertionSteps();
+      case 'search':
+        return getSearchSteps();
+      case 'deletion-case-1':
+        return getDeletionCase1Steps();
+      case 'deletion-case-2':
+        return getDeletionCase2Steps();
+      case 'deletion-case-3':
+        return getDeletionCase3Steps();
+      case 'inorder':
+        return getInorderSteps();
+      case 'preorder':
+        return getPreorderSteps();
+      case 'postorder':
+        return getPostorderSteps();
+      default:
+        return getBstRuleSteps();
     }
-  };
+  }, [activeTopic]);
 
-  const handleSkip = (seconds: number) => {
-    if (!videoRef.current) return;
-    const newTime = Math.min(Math.max(videoRef.current.currentTime + seconds, 0), duration);
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
+  // Topic Switch Handler
+  const handleSelectTopic = (newTopic: VisualizerTopic) => {
     soundManager.playClick();
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    setVolume(val);
-    if (videoRef.current) {
-      videoRef.current.volume = val;
-      if (val === 0) {
-        setIsMuted(true);
-        videoRef.current.muted = true;
-      } else if (isMuted) {
-        setIsMuted(false);
-        videoRef.current.muted = false;
-      }
-    }
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    const nextMuted = !isMuted;
-    setIsMuted(nextMuted);
-    videoRef.current.muted = nextMuted;
-    soundManager.playClick();
-  };
-
-  const handleSpeedChange = (speed: number) => {
-    setPlaybackSpeed(speed);
-    if (videoRef.current) {
-      videoRef.current.playbackRate = speed;
-    }
-    setShowSpeedMenu(false);
-    soundManager.playClick();
-  };
-
-  const toggleLoop = () => {
-    const nextLoop = !isLooping;
-    setIsLooping(nextLoop);
-    if (videoRef.current) {
-      videoRef.current.loop = nextLoop;
-    }
-    soundManager.playClick();
-  };
-
-  const toggleFullscreen = () => {
-    if (!playerContainerRef.current) return;
-    if (!document.fullscreenElement) {
-      playerContainerRef.current.requestFullscreen().then(() => {
-        setIsFullscreen(true);
-      }).catch((err) => {
-        console.warn('Fullscreen request failed:', err);
-      });
-    } else {
-      document.exitFullscreen().then(() => {
-        setIsFullscreen(false);
-      });
-    }
-  };
-
-  const togglePiP = async () => {
-    if (!videoRef.current) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        setIsPiPActive(false);
-      } else if (document.pictureInPictureEnabled) {
-        await videoRef.current.requestPictureInPicture();
-        setIsPiPActive(true);
-      }
-    } catch (err) {
-      console.warn('PiP not available:', err);
-    }
-  };
-
-  // Capture frame snapshot to PNG
-  const captureFrameSnapshot = () => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current || document.createElement('canvas');
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/png');
-    setSnapshotPreview(dataUrl);
-    soundManager.playSuccess();
-  };
-
-  const downloadSnapshot = () => {
-    if (!snapshotPreview) return;
-    const a = document.createElement('a');
-    a.href = snapshotPreview;
-    a.download = `video-snapshot-${Math.floor(currentTime)}s.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  // Bookmarking timestamps
-  const handleAddBookmark = () => {
-    if (!newBookmarkTitle.trim()) return;
-    const bookmark: VideoBookmark = {
-      id: `bm-${Date.now()}`,
-      timestamp: currentTime,
-      title: newBookmarkTitle.trim(),
-      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setBookmarks((prev) => [...prev, bookmark].sort((a, b) => a.timestamp - b.timestamp));
-    setNewBookmarkTitle('');
-    setIsAddingBookmark(false);
-    soundManager.playSuccess();
-  };
-
-  const handleJumpToBookmark = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
-      soundManager.playClick();
-    }
-  };
-
-  const handleDeleteBookmark = (id: string) => {
-    setBookmarks((prev) => prev.filter((bm) => bm.id !== id));
-    soundManager.playClick();
-  };
-
-  const handleRemoveVideo = () => {
-    if (videoSrc && videoSrc.startsWith('blob:')) {
-      URL.revokeObjectURL(videoSrc);
-    }
-    setVideoSrc(null);
-    setVideoMeta(null);
+    setActiveTopic(newTopic);
+    setCurrentStepIndex(0);
     setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setBookmarks([]);
-    soundManager.playClick();
   };
 
-  // Keyboard shortcut listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if focus is on an input
-      if (
-        document.activeElement?.tagName === 'INPUT' ||
-        document.activeElement?.tagName === 'TEXTAREA'
-      ) {
-        return;
+  // Next Step Handler
+  const handleNext = () => {
+    soundManager.playClick();
+    setIsPlaying(false);
+    setCurrentStepIndex((prev) => Math.min(steps.length - 1, prev + 1));
+  };
+
+  // Previous Step Handler
+  const handlePrevious = () => {
+    soundManager.playClick();
+    setIsPlaying(false);
+    setCurrentStepIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  // Play / Pause Toggle Handler
+  const handlePlayPause = () => {
+    soundManager.playClick();
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      if (currentStepIndex >= steps.length - 1) {
+        setCurrentStepIndex(0);
       }
+      setIsPlaying(true);
+    }
+  };
 
-      if (e.code === 'Space' && videoSrc) {
-        e.preventDefault();
-        togglePlay();
-      } else if (e.code === 'ArrowLeft' && videoSrc) {
-        e.preventDefault();
-        handleSkip(-5);
-      } else if (e.code === 'ArrowRight' && videoSrc) {
-        e.preventDefault();
-        handleSkip(5);
-      } else if (e.code === 'KeyM' && videoSrc) {
-        e.preventDefault();
-        toggleMute();
-      } else if (e.code === 'KeyF' && videoSrc) {
-        e.preventDefault();
-        toggleFullscreen();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [videoSrc, togglePlay]);
-
-  // Fullscreen change listener
+  // Auto-play timer loop
   useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, []);
+    if (!isPlaying) return;
+
+    const intervalTime = SPEED_MS[speed];
+    const timer = setInterval(() => {
+      setCurrentStepIndex((prev) => {
+        if (prev < steps.length - 1) {
+          soundManager.playStep();
+          return prev + 1;
+        } else {
+          setIsPlaying(false);
+          soundManager.playSuccess();
+          return prev;
+        }
+      });
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }, [isPlaying, speed, steps.length]);
+
+  // Mark the current visualizer topic as completed when the student reaches the final step
+  useEffect(() => {
+    if (currentStepIndex === steps.length - 1 && steps.length > 0) {
+      completeVisualizeLesson(activeTopic);
+    }
+  }, [currentStepIndex, steps.length, activeTopic, completeVisualizeLesson]);
+
+  const currentStep = steps[currentStepIndex] || steps[0];
+
+  const getNodeColor = (status?: TreeNodeData['status']) => {
+    switch (status) {
+      case 'active':
+        return {
+          fill: '#9333ea', // purple-600
+          stroke: '#d8b4fe',
+          text: '#ffffff',
+          halo: true,
+        };
+      case 'visited':
+        return {
+          fill: '#4f46e5', // indigo-600
+          stroke: '#a5b4fc',
+          text: '#ffffff',
+          halo: false,
+        };
+      case 'success':
+        return {
+          fill: '#059669', // emerald-600
+          stroke: '#6ee7b7',
+          text: '#ffffff',
+          halo: false,
+        };
+      case 'danger':
+        return {
+          fill: '#e11d48', // rose-600
+          stroke: '#fda4af',
+          text: '#ffffff',
+          halo: true,
+        };
+      case 'successor':
+        return {
+          fill: '#0891b2', // cyan-600
+          stroke: '#67e8f9',
+          text: '#ffffff',
+          halo: true,
+        };
+      default:
+        return {
+          fill: 'var(--node-fill, #1e293b)',
+          stroke: 'var(--node-stroke, #475569)',
+          text: 'var(--node-text, #f8fafc)',
+          halo: false,
+        };
+    }
+  };
+
+  const topicTabs: { id: VisualizerTopic; label: string }[] = [
+    { id: 'bst-rule', label: 'BST Rule' },
+    { id: 'insertion', label: 'BST Insertion' },
+    { id: 'search', label: 'BST Search' },
+    { id: 'deletion-case-1', label: 'BST Deletion – Case 1' },
+    { id: 'deletion-case-2', label: 'BST Deletion – Case 2' },
+    { id: 'deletion-case-3', label: 'BST Deletion – Case 3' },
+    { id: 'inorder', label: 'Inorder Traversal' },
+    { id: 'preorder', label: 'Preorder Traversal' },
+    { id: 'postorder', label: 'Postorder Traversal' },
+  ];
 
   return (
-    <div id="video-section-container" className="space-y-6 pb-12">
-      {/* Hidden offscreen canvas for frame capture */}
-      <canvas ref={canvasRef} className="hidden" />
-
-      {/* Success Notification Toast */}
-      {uploadSuccessToast && (
-        <div
-          id="video-toast-notification"
-          className="fixed top-20 right-6 z-50 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200"
-        >
-          <CheckCircle2 className="w-5 h-5 text-indigo-200 flex-shrink-0" />
-          <span className="text-sm font-medium">{uploadSuccessToast}</span>
+    <div
+      id="bst-visualizer-page"
+      className="space-y-4 pb-8 [--node-fill:#ffffff] [--node-stroke:#cbd5e1] [--node-text:#1e293b] dark:[--node-fill:#0f172a] dark:[--node-stroke:#475569] dark:[--node-text:#f8fafc]"
+    >
+      {/* Header */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-2xs">
+            <Binary className="w-4 h-4" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white font-mono">
+            BST Visualizer
+          </h1>
         </div>
-      )}
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Watch how a Binary Search Tree works, one step at a time.
+        </p>
+      </div>
 
-      {/* Page Header */}
-      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs">
-              <Film className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Video Player & Uploader
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                Upload your video files, analyze video metrics, take high-resolution frame snapshots, and mark timestamps.
-              </p>
-            </div>
+      {/* Selectable Topic Tabs (NO visible scrollbar in any browser/theme) */}
+      <div className="bg-white dark:bg-[#0b0f19] p-1.5 rounded-2xl border border-slate-200 dark:border-purple-900/30 shadow-xs overflow-hidden">
+        <div
+          className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {topicTabs.map((tab) => {
+            const isActive = activeTopic === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleSelectTopic(tab.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold tracking-wide whitespace-nowrap transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-purple-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Animation Area (Directly after tabs - No extra cards or empty spaces) */}
+      <div className="bg-white dark:bg-[#0b0f19] rounded-2xl border border-slate-200 dark:border-purple-900/30 p-4 sm:p-6 shadow-xs flex flex-col items-center justify-between min-h-[350px] space-y-4">
+        {/* Step Indicator & Direction Banner */}
+        <div className="w-full flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2.5 font-mono text-xs">
+            <span className="px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold border border-purple-200 dark:border-purple-800/60">
+              Step {currentStep?.stepNumber || 1} of {currentStep?.totalSteps || 1}
+            </span>
+            {currentStep?.comparisonText && (
+              <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                {currentStep.comparisonDirection === 'left' && (
+                  <ArrowLeft className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                )}
+                {currentStep.comparisonDirection === 'right' && (
+                  <ArrowRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                )}
+                {currentStep.comparisonDirection === 'found' && (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                )}
+                <span>{currentStep.comparisonText}</span>
+              </span>
+            )}
           </div>
         </div>
 
-        {videoSrc && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              id="upload-new-video-btn"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors"
-            >
-              <Upload className="w-4 h-4" />
-              Upload Another
-            </button>
-            <button
-              id="remove-video-btn"
-              onClick={handleRemoveVideo}
-              className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition-colors"
-              title="Remove current video"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear
-            </button>
+        {/* Dynamic Responsive SVG Tree Area */}
+        <div className="w-full flex items-center justify-center overflow-x-auto py-2">
+          <svg
+            viewBox="0 0 600 350"
+            className="w-full max-w-[600px] h-[270px] sm:h-[310px] select-none"
+          >
+            {/* Edges */}
+            {currentStep?.edges?.map((edge, idx) => {
+              const fromNode = currentStep.nodes.find((n) => n.value === edge.from);
+              const toNode = currentStep.nodes.find((n) => n.value === edge.to);
+              if (!fromNode || !toNode) return null;
+
+              return (
+                <line
+                  key={`edge-${idx}-${edge.from}-${edge.to}`}
+                  x1={fromNode.x}
+                  y1={fromNode.y}
+                  x2={toNode.x}
+                  y2={toNode.y}
+                  stroke={edge.isHighlighted ? '#6366f1' : '#cbd5e1'}
+                  strokeWidth={edge.isHighlighted ? 3.5 : 2}
+                  className="transition-all duration-300 dark:stroke-slate-700"
+                  strokeDasharray={edge.isHighlighted ? '4 2' : 'none'}
+                />
+              );
+            })}
+
+            {/* Empty Slot Indicator */}
+            {currentStep?.emptySlot && (
+              <g
+                transform={`translate(${currentStep.emptySlot.x}, ${currentStep.emptySlot.y})`}
+                className="animate-pulse"
+              >
+                <circle
+                  r={22}
+                  fill="none"
+                  stroke="#a855f7"
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                />
+                <text
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className="text-[10px] font-mono fill-purple-600 dark:fill-purple-400 font-bold"
+                >
+                  Null
+                </text>
+              </g>
+            )}
+
+            {/* Nodes */}
+            {currentStep?.nodes?.map((node) => {
+              const style = getNodeColor(node.status);
+              return (
+                <g
+                  key={`node-${node.value}`}
+                  transform={`translate(${node.x}, ${node.y})`}
+                  className="transition-transform duration-300"
+                >
+                  {/* Halo */}
+                  {style.halo && (
+                    <circle
+                      r={29}
+                      fill="none"
+                      stroke={style.stroke}
+                      strokeWidth={2}
+                      strokeDasharray="3 3"
+                      className="opacity-80"
+                    />
+                  )}
+
+                  {/* Main Node Circle */}
+                  <circle
+                    r={22}
+                    fill={style.fill}
+                    stroke={style.stroke}
+                    strokeWidth={2.5}
+                    className="shadow-sm transition-colors duration-300"
+                  />
+
+                  {/* Node Value */}
+                  <text
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={style.text}
+                    className="text-sm font-mono font-extrabold select-none pointer-events-none"
+                  >
+                    {node.value}
+                  </text>
+
+                  {/* Label below node */}
+                  {node.label && (
+                    <text
+                      y={34}
+                      textAnchor="middle"
+                      className="text-[10px] font-mono font-bold fill-slate-500 dark:fill-slate-400 select-none pointer-events-none"
+                    >
+                      {node.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Traversal Output Sequence */}
+        {currentStep?.traversalOutput && (
+          <div className="w-full flex flex-col items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
+              Traversal Output Sequence
+            </span>
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              {currentStep.traversalOutput.map((val, i) => (
+                <div
+                  key={i}
+                  className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-950/80 border border-purple-300 dark:border-purple-700 flex items-center justify-center font-mono font-bold text-sm text-purple-700 dark:text-purple-300 shadow-2xs"
+                >
+                  {val}
+                </div>
+              ))}
+            </div>
+            {currentStep.traversalOutput.length === 5 && (
+              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                {activeTopic === 'inorder' && 'Inorder: 20, 30, 40, 50, 70'}
+                {activeTopic === 'preorder' && 'Preorder: 50, 30, 20, 40, 70'}
+                {activeTopic === 'postorder' && 'Postorder: 20, 40, 30, 70, 50'}
+              </span>
+            )}
           </div>
         )}
       </div>
 
-      {/* If No Video is Loaded: Rich Upload Zone */}
-      {!videoSrc ? (
-        <div className="space-y-6">
-          {/* Drag and Drop Zone */}
-          <div
-            id="video-dropzone"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-3xl p-10 sm:p-14 text-center transition-all duration-200 ${
-              isDragging
-                ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 scale-[1.008]'
-                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-400 dark:hover:border-indigo-600'
+      {/* Short Explanation Card ("What is happening?") */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-purple-900/30 space-y-1 shadow-xs">
+        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          What is happening?
+        </span>
+        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+          {currentStep?.explanation || 'Loading step explanation...'}
+        </p>
+      </div>
+
+      {/* Animation Controls: Previous, Play/Pause, Next, Restart, Animation Speed */}
+      <div className="bg-white dark:bg-[#0b0f19] p-4 rounded-2xl border border-slate-200 dark:border-purple-900/30 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+        {/* Playback Controls */}
+        <div className="flex items-center gap-2">
+          {/* Previous Button */}
+          <button
+            onClick={handlePrevious}
+            disabled={currentStepIndex === 0}
+            className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+              currentStepIndex === 0
+                ? 'opacity-40 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
+                : 'border-slate-200 dark:border-purple-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
             }`}
+            title="Previous step"
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/*,.mp4,.webm,.ogg,.mov,.mkv"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleFileLoad(e.target.files[0]);
-                }
-              }}
-              className="hidden"
-            />
+            <ChevronLeft className="w-4 h-4" />
+            <span>Previous</span>
+          </button>
 
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto text-indigo-600 dark:text-indigo-400 shadow-sm">
-                <Upload className="w-8 h-8 animate-pulse" />
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Drag and drop your video file here
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Supports MP4, WebM, MOV, OGG, and MKV formats. No server upload required — processed entirely on your machine.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <button
-                  id="browse-files-button"
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-2"
-                >
-                  <FileVideo className="w-4 h-4" />
-                  Browse Video File
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md font-mono">.MP4</span>
-                <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md font-mono">.WEBM</span>
-                <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md font-mono">.MOV</span>
-                <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md font-mono">.OGG</span>
-                <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md font-mono">.MKV</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Options: URL Loader or Preloaded Educational Samples */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Direct URL Loader */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
-                <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                  <LinkIcon className="w-3.5 h-3.5" />
-                </div>
-                <span>Load from Web Video URL</span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Paste any direct video streaming link (.mp4, .webm) to test playback without downloading.
-              </p>
-
-              <form onSubmit={handleUrlLoad} className="space-y-2 pt-1">
-                <div className="flex items-center gap-2">
-                  <input
-                    id="video-url-input"
-                    type="url"
-                    placeholder="https://example.com/video.mp4"
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 font-mono"
-                  />
-                  <button
-                    id="load-url-btn"
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
-                  >
-                    Load
-                  </button>
-                </div>
-                {urlError && (
-                  <p className="text-[11px] text-red-500 dark:text-red-400 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    {urlError}
-                  </p>
-                )}
-              </form>
-            </div>
-
-            {/* Test with Sample Video */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
-                <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-                <span>Test with Sample Video</span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Don't have a video handy? Try one of these pre-configured educational sample clips:
-              </p>
-
-              <div className="space-y-2 pt-1">
-                {SAMPLE_VIDEOS.map((sample, idx) => (
-                  <button
-                    key={idx}
-                    id={`load-sample-btn-${idx}`}
-                    onClick={() => handleLoadSample(sample)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850/60 hover:border-indigo-300 dark:hover:border-indigo-700 flex items-center justify-between text-left transition-colors group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-100/60 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                          {sample.title}
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {sample.desc} • {sample.size}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-0.5 transition-transform ml-2">
-                      Play →
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Video Loaded: Interactive Player & Details Layout */
-        <div className="space-y-6">
-          {/* Main Video Player Container */}
-          <div
-            ref={playerContainerRef}
-            id="video-player-frame"
-            className="relative bg-black rounded-3xl overflow-hidden shadow-xl border border-slate-800 group select-none"
+          {/* Play / Pause Toggle Button */}
+          <button
+            onClick={handlePlayPause}
+            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-purple-600/25 cursor-pointer active:scale-95"
+            title={isPlaying ? 'Pause animation' : 'Play animation'}
           >
-            {/* HTML5 Video Element */}
-            <video
-              ref={videoRef}
-              src={videoSrc}
-              onClick={togglePlay}
-              onTimeUpdate={() => {
-                if (videoRef.current) {
-                  setCurrentTime(videoRef.current.currentTime);
-                }
-              }}
-              onLoadedMetadata={() => {
-                if (videoRef.current) {
-                  const v = videoRef.current;
-                  setDuration(v.duration);
-                  setVideoMeta((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          duration: v.duration,
-                          width: v.videoWidth,
-                          height: v.videoHeight,
-                          aspectRatio: `${(v.videoWidth / v.videoHeight).toFixed(2)}:1`,
-                        }
-                      : null
-                  );
-                }
-              }}
-              onEnded={() => setIsPlaying(false)}
-              className="w-full max-h-[70vh] object-contain mx-auto cursor-pointer"
-              playsInline
-            />
-
-            {/* Center Play/Pause Overlay Indicator on Click */}
-            {!isPlaying && (
-              <div
-                onClick={togglePlay}
-                className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer backdrop-blur-[2px] transition-all"
-              >
-                <div className="w-20 h-20 rounded-full bg-indigo-600/90 text-white flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
-                  <Play className="w-9 h-9 fill-white ml-1" />
-                </div>
-              </div>
+            {isPlaying ? (
+              <>
+                <Pause className="w-4 h-4" />
+                <span>Pause</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-current" />
+                <span>Play</span>
+              </>
             )}
+          </button>
 
-            {/* Bottom Custom Video Controls Bar */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 sm:p-5 flex flex-col gap-2.5 transition-opacity duration-200">
-              {/* Scrubbing Timeline Slider */}
-              <div className="flex items-center gap-3">
-                <input
-                  id="video-scrubber"
-                  type="range"
-                  min="0"
-                  max={duration || 100}
-                  step="0.1"
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="w-full h-1.5 bg-white/30 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:h-2 transition-all"
-                />
-              </div>
+          {/* Next Button */}
+          <button
+            onClick={handleNext}
+            disabled={currentStepIndex >= steps.length - 1}
+            className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+              currentStepIndex >= steps.length - 1
+                ? 'opacity-40 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
+                : 'border-slate-200 dark:border-purple-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
+            }`}
+            title="Next step"
+          >
+            <span>Next</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
 
-              {/* Controls Strip */}
-              <div className="flex items-center justify-between gap-2 text-white flex-wrap">
-                {/* Left Controls: Play/Pause, Skips, Volume, Timer */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <button
-                    id="video-play-toggle"
-                    onClick={togglePlay}
-                    className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-                    title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-4 h-4 fill-white" />
-                    ) : (
-                      <Play className="w-4 h-4 fill-white ml-0.5" />
-                    )}
-                  </button>
-
-                  <button
-                    id="video-rewind-btn"
-                    onClick={() => handleSkip(-10)}
-                    className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
-                    title="Rewind 10 seconds"
-                  >
-                    <Rewind className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    id="video-forward-btn"
-                    onClick={() => handleSkip(10)}
-                    className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
-                    title="Forward 10 seconds"
-                  >
-                    <FastForward className="w-4 h-4" />
-                  </button>
-
-                  {/* Volume Control */}
-                  <div className="flex items-center gap-1.5 group/vol">
-                    <button
-                      id="video-mute-btn"
-                      onClick={toggleMute}
-                      className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
-                      title={isMuted ? 'Unmute' : 'Mute'}
-                    >
-                      {isMuted || volume === 0 ? (
-                        <VolumeX className="w-4 h-4 text-red-400" />
-                      ) : (
-                        <Volume2 className="w-4 h-4" />
-                      )}
-                    </button>
-                    <input
-                      id="video-volume-slider"
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={isMuted ? 0 : volume}
-                      onChange={handleVolumeChange}
-                      className="w-14 sm:w-20 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-indigo-400"
-                    />
-                  </div>
-
-                  {/* Time Counter */}
-                  <div className="text-xs font-mono text-white/90 pl-1">
-                    <span>{formatTime(currentTime)}</span>
-                    <span className="text-white/50 mx-1">/</span>
-                    <span className="text-white/70">{formatTime(duration)}</span>
-                  </div>
-                </div>
-
-                {/* Right Controls: Speed, Loop, Snapshot, PiP, Fullscreen */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Playback Speed Menu */}
-                  <div className="relative">
-                    <button
-                      id="playback-speed-button"
-                      onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                      className="px-2 py-1 rounded-md bg-white/20 hover:bg-white/30 text-xs font-mono font-semibold transition-colors"
-                      title="Playback Speed"
-                    >
-                      {playbackSpeed}x
-                    </button>
-
-                    {showSpeedMenu && (
-                      <div className="absolute bottom-full right-0 mb-2 bg-slate-900 border border-slate-700 rounded-xl p-1 shadow-xl flex flex-col gap-0.5 z-30">
-                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((spd) => (
-                          <button
-                            key={spd}
-                            onClick={() => handleSpeedChange(spd)}
-                            className={`px-3 py-1 rounded-md text-xs font-mono text-left transition-colors ${
-                              playbackSpeed === spd
-                                ? 'bg-indigo-600 text-white font-bold'
-                                : 'text-slate-300 hover:bg-slate-800'
-                            }`}
-                          >
-                            {spd}x
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Loop Toggle */}
-                  <button
-                    id="video-loop-toggle"
-                    onClick={toggleLoop}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      isLooping
-                        ? 'bg-indigo-600 text-white'
-                        : 'hover:bg-white/20 text-white/80 hover:text-white'
-                    }`}
-                    title={isLooping ? 'Looping enabled' : 'Enable loop'}
-                  >
-                    <Repeat className="w-4 h-4" />
-                  </button>
-
-                  {/* Frame Snapshot */}
-                  <button
-                    id="video-snapshot-btn"
-                    onClick={captureFrameSnapshot}
-                    className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
-                    title="Capture current frame as PNG snapshot"
-                  >
-                    <Camera className="w-4 h-4" />
-                  </button>
-
-                  {/* Picture-in-Picture */}
-                  <button
-                    id="video-pip-btn"
-                    onClick={togglePiP}
-                    className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
-                    title="Picture-in-Picture mode"
-                  >
-                    <Tv className="w-4 h-4" />
-                  </button>
-
-                  {/* Fullscreen */}
-                  <button
-                    id="video-fullscreen-btn"
-                    onClick={toggleFullscreen}
-                    className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
-                    title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen (F)'}
-                  >
-                    {isFullscreen ? (
-                      <Minimize2 className="w-4 h-4" />
-                    ) : (
-                      <Maximize2 className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Video Metadata & Interactive Actions Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left 2 Cols: Details & Bookmarks */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Video Info Card */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                      Video Information
-                    </span>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">
-                      {videoMeta?.name || 'Uploaded Video'}
-                    </h2>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      id="snapshot-frame-action-btn"
-                      onClick={captureFrameSnapshot}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                    >
-                      <Camera className="w-3.5 h-3.5 text-indigo-500" />
-                      Snapshot
-                    </button>
-
-                    {videoSrc && (
-                      <a
-                        id="download-video-file-link"
-                        href={videoSrc}
-                        download={videoMeta?.name || 'video.mp4'}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                      >
-                        <Download className="w-3.5 h-3.5 text-indigo-500" />
-                        Download
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {/* 4 Metadata Grid Items */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-1">
-                      <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Duration</span>
-                    </div>
-                    <p className="text-sm font-bold font-mono text-slate-900 dark:text-white">
-                      {formatTime(duration)}
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-1">
-                      <Monitor className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Resolution</span>
-                    </div>
-                    <p className="text-sm font-bold font-mono text-slate-900 dark:text-white">
-                      {videoMeta?.width && videoMeta?.height
-                        ? `${videoMeta.width} × ${videoMeta.height}`
-                        : 'Auto'}
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-1">
-                      <HardDrive className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>File Size</span>
-                    </div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                      {videoMeta?.sizeFormatted || 'Loaded'}
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-1">
-                      <Tag className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>MIME Type</span>
-                    </div>
-                    <p className="text-sm font-bold font-mono text-slate-900 dark:text-white truncate">
-                      {videoMeta?.type || 'video/*'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timestamp Bookmarks Card */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                      <BookmarkPlus className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Timestamps & Bookmarks
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Pin important moments in the video and jump to them in 1 click.
-                      </p>
-                    </div>
-                  </div>
-
-                  {!isAddingBookmark && (
-                    <button
-                      id="open-add-bookmark-btn"
-                      onClick={() => setIsAddingBookmark(true)}
-                      className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center gap-1 transition-colors"
-                    >
-                      <BookmarkPlus className="w-3.5 h-3.5" />
-                      Mark at {formatTime(currentTime)}
-                    </button>
-                  )}
-                </div>
-
-                {/* Add Bookmark Input */}
-                {isAddingBookmark && (
-                  <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-2">
-                    <div className="flex items-center justify-between text-xs text-indigo-900 dark:text-indigo-200 font-semibold">
-                      <span>Bookmark note for timestamp: {formatTime(currentTime)}</span>
-                      <button
-                        onClick={() => setIsAddingBookmark(false)}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="bookmark-title-input"
-                        type="text"
-                        placeholder="e.g. BST root insertion, traversal phase..."
-                        value={newBookmarkTitle}
-                        onChange={(e) => setNewBookmarkTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddBookmark();
-                        }}
-                        autoFocus
-                        className="flex-1 px-3 py-2 text-xs rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
-                      <button
-                        id="save-bookmark-btn"
-                        onClick={handleAddBookmark}
-                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Bookmark List */}
-                {bookmarks.length === 0 ? (
-                  <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">
-                    No bookmarks saved yet. Scrub to any position and click "Mark" to record points of interest.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {bookmarks.map((bm) => (
-                      <div
-                        key={bm.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors group"
-                      >
-                        <button
-                          onClick={() => handleJumpToBookmark(bm.timestamp)}
-                          className="flex items-center gap-3 text-left flex-1 min-w-0"
-                        >
-                          <span className="px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono text-xs font-bold">
-                            {formatTime(bm.timestamp)}
-                          </span>
-                          <span className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">
-                            {bm.title}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBookmark(bm.id)}
-                          className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1 opacity-60 group-hover:opacity-100 transition-opacity"
-                          title="Delete bookmark"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right 1 Col: Keyboard Guide & Snapshot Modal/Preview */}
-            <div className="space-y-6">
-              {/* Snapshot Preview Card if captured */}
-              {snapshotPreview && (
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-indigo-200 dark:border-indigo-800 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
-                      <Camera className="w-4 h-4" />
-                      Frame Snapshot Captured
-                    </span>
-                    <button
-                      onClick={() => setSnapshotPreview(null)}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-
-                  <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-black">
-                    <img
-                      src={snapshotPreview}
-                      alt="Captured video frame"
-                      className="w-full h-auto object-contain"
-                    />
-                  </div>
-
-                  <button
-                    id="download-snapshot-btn"
-                    onClick={downloadSnapshot}
-                    className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Download PNG Snapshot
-                  </button>
-                </div>
-              )}
-
-              {/* Keyboard Shortcuts Card */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Keyboard Shortcuts
-                </h3>
-                <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                  <div className="flex items-center justify-between">
-                    <span>Play / Pause</span>
-                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px]">
-                      Space
-                    </kbd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Rewind 5s</span>
-                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px]">
-                      ←
-                    </kbd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Forward 5s</span>
-                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px]">
-                      →
-                    </kbd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Mute / Unmute</span>
-                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px]">
-                      M
-                    </kbd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Fullscreen</span>
-                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px]">
-                      F
-                    </kbd>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Speed Controls: 0.5x, 1x, 1.5x, 2x */}
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <span className="text-slate-500 dark:text-slate-400 font-bold">Animation Speed</span>
+          <div className="flex items-center gap-1">
+            {(['0.5x', '1x', '1.5x', '2x'] as const).map((spd) => {
+              const isSpdActive = speed === spd;
+              return (
+                <button
+                  key={spd}
+                  onClick={() => {
+                    soundManager.playClick();
+                    setSpeed(spd);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    isSpdActive
+                      ? 'bg-purple-600 text-white shadow-xs font-extrabold'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {spd}
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
+
+export const VisualizePage = VideoPage;

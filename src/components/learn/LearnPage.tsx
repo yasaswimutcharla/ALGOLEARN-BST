@@ -208,8 +208,8 @@ export const LearnPage: React.FC<LearnPageProps> = ({
             mobileTocOpen ? 'block' : 'hidden lg:block'
           } lg:col-span-4 xl:col-span-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col overflow-hidden sticky top-6`}
         >
-          {/* Table of Contents Header */}
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/40 dark:bg-slate-850/40">
+          {/* Table of Contents Header (Horizontal line removed per user request) */}
+          <div className="px-5 py-4 flex items-center justify-between bg-slate-50/40 dark:bg-slate-850/40">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-mono">
               TABLE OF CONTENTS
             </h2>
@@ -218,8 +218,8 @@ export const LearnPage: React.FC<LearnPageProps> = ({
             </span>
           </div>
 
-          {/* Table of Contents List of Cards with Left Border & Small Circle on Right */}
-          <div className="flex-1 overflow-y-auto py-2 space-y-0.5 custom-scrollbar max-h-[calc(100vh-14rem)]">
+          {/* Table of Contents List of Cards with Left Border & Small Circle on Right (No horizontal scrollbar/white bar) */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 space-y-0.5 custom-scrollbar max-h-[calc(100vh-14rem)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0">
             {LESSONS.map((lesson, idx) => {
               // Hide the 7 terminology subtopics from top-level display: they are collapsible under Terminology Recap
               if (lesson.number >= 5 && lesson.number <= 11) {
@@ -329,7 +329,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({
                       {isTerminologyExpanded && (
                         <div
                           id="toc-terminology-subtopics-list"
-                          className="py-1 space-y-0.5 bg-slate-50/70 dark:bg-slate-850/50 border-l-[3px] border-indigo-200/80 dark:border-indigo-900/60 ml-4 pl-2 pr-3 my-0.5 rounded-r-xl transition-all"
+                          className="py-1 space-y-0.5 bg-slate-50/70 dark:bg-slate-850/50 border-l-[3px] border-indigo-200/80 dark:border-indigo-900/60 mx-2 pl-2 pr-2 my-0.5 rounded-r-xl transition-all"
                         >
                           {TERMINOLOGY_SUBTOPICS.map((subtopic) => {
                             const isSubDone = (stats?.completedLessons || []).includes(subtopic.id);

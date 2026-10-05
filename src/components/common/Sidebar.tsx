@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   LayoutGrid,
   BookOpen,
-  Video,
   Gamepad2,
   GraduationCap,
   Trophy,
   X,
 } from 'lucide-react';
+import { VisualizeNavIcon } from './VisualizeNavIcon';
 import { NavTab } from './Header';
 import { useUserProgress } from '../../context/UserProgressContext';
 import { soundManager } from '../../utils/audio';
@@ -31,16 +31,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     stats,
     quizAnsweredCount,
     calculateOverallProgress,
+    completedVisualizeLessons,
   } = useUserProgress();
 
   const [isMenuHovered, setIsMenuHovered] = useState<boolean>(false);
 
   // Exact counts matching curriculum breakdown
   const learnCompleted = Math.min(stats?.completedLessons?.length || 0, 6);
-  const visualizeCompleted = Math.min(stats?.completedPractice?.length || 0, 3);
+  const visualizeCompleted = Math.min(completedVisualizeLessons?.length || 0, 8);
   const gameCompleted = Math.min(stats?.completedGameChallenges?.length || 0, 5);
   const quizCompleted = Math.min(quizAnsweredCount || 0, 10);
-  const totalCompleted = learnCompleted + visualizeCompleted + gameCompleted + quizCompleted;
+  const totalCompleted = learnCompleted + Math.min(stats?.completedPractice?.length || 0, 3) + gameCompleted + quizCompleted;
 
   const overallProgress = Math.round((totalCompleted / 24) * 100);
 
@@ -57,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'home', label: 'Overview', icon: LayoutGrid },
     { id: 'learn', label: 'Learn', icon: BookOpen },
-    { id: 'video', label: 'Video', icon: Video },
+    { id: 'video', label: 'Visualize', icon: VisualizeNavIcon },
     { id: 'game', label: 'Game', icon: Gamepad2 },
     { id: 'quiz', label: 'Quiz', icon: GraduationCap },
     { id: 'results', label: 'Progress', icon: Trophy },
@@ -72,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return `${learnCompleted}/6`;
       case 'video':
       case 'visual':
-        return 'Upload';
+        return `${visualizeCompleted}/8`;
       case 'game':
         return `${gameCompleted}/5`;
       case 'quiz':
@@ -158,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="font-semibold">{item.label}</span>
                 </div>
 
-                {/* Progress Badge: visible ONLY when cursor is on the menu bar */}
+                {/* Progress Badge: Always visible for Visualize per user requirement, and on hover for others */}
                 <span
                   id={`sidebar-progress-${item.id}`}
                   className={`transition-all duration-300 text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap ${
@@ -166,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ? 'bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-700'
                       : 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60'
                   } ${
-                    isMenuHovered
+                    item.id === 'video' || isMenuHovered
                       ? 'opacity-100 translate-x-0'
                       : 'opacity-0 translate-x-1 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0 group-hover/sidebar:pointer-events-auto'
                   }`}

@@ -8,11 +8,10 @@ import {
   Clock,
   ArrowRight,
   Gamepad2,
-  Sparkles,
+  Play,
 } from 'lucide-react';
 import { useUserProgress } from '../../context/UserProgressContext';
 import { soundManager } from '../../utils/audio';
-import { LESSONS } from '../../data/lessonsData';
 
 interface ResultsPageProps {
   onGoToHome?: () => void;
@@ -20,6 +19,7 @@ interface ResultsPageProps {
   onGoToGame?: (level?: number) => void;
   onGoToQuiz?: () => void;
   onGoToPractice?: () => void;
+  onGoToVisualize?: (topicId?: string) => void;
 }
 
 type ModuleCategory = 'all' | 'fundamentals' | 'operations' | 'traversals' | 'challenges';
@@ -35,8 +35,6 @@ interface BSTModuleItem {
   lessonIndex?: number;
   lessonId?: string;
   isGame?: boolean;
-  isTerminologyRecap?: boolean;
-  terminologySubtopics?: { id: string; title: string; lessonIndex?: number }[];
 }
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({
@@ -45,6 +43,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
   onGoToGame,
   onGoToQuiz,
   onGoToPractice,
+  onGoToVisualize,
 }) => {
   const {
     stats,
@@ -52,6 +51,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
     openStartFromZeroModal,
     continueMyProgress,
     getLevelTitle,
+    completedVisualizeLessons,
   } = useUserProgress();
 
   const [activeCategory, setActiveCategory] = useState<ModuleCategory>('all');
@@ -64,93 +64,238 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
     });
   }, []);
 
-  // Dynamically generate curriculum modules directly from the current Learn Table of Contents data
-  const BST_MODULES: BSTModuleItem[] = useMemo(() => {
-    const modules: BSTModuleItem[] = [];
-    let displayCounter = 1;
+  // 20 Defined BST Modules
+  const BST_MODULES: BSTModuleItem[] = useMemo(
+    () => [
+      // FUNDAMENTALS (1-10)
+      {
+        id: 'mod-1',
+        code: 'BST-01',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'WHAT IS A TREE?',
+        description: 'Introduction to hierarchical tree data structures, roots, edges, and leaf nodes.',
+        criteria: 'Read theory guide and pass interactive node identification.',
+        lessonIndex: 0,
+        lessonId: 'lesson-1',
+      },
+      {
+        id: 'mod-2',
+        code: 'BST-02',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'BINARY TREE',
+        description: 'Explore trees where every node has at most two children (left and right).',
+        criteria: 'Understand branching limit and 0, 1, or 2 children rules.',
+        lessonIndex: 1,
+        lessonId: 'lesson-2',
+      },
+      {
+        id: 'mod-3',
+        code: 'BST-03',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'WHAT IS A BST?',
+        description: 'Ordered binary tree structure designed for fast logarithmic O(log n) lookups.',
+        criteria: 'Master the fundamental ordering invariant across all nodes.',
+        lessonIndex: 2,
+        lessonId: 'lesson-3',
+      },
+      {
+        id: 'mod-4',
+        code: 'BST-04',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'BST PROPERTY',
+        description: 'The Golden Rule: Left < Root < Right must hold recursively for all subtrees.',
+        criteria: 'Verify BST integrity across subtrees and identify invalid nodes.',
+        lessonIndex: 3,
+        lessonId: 'lesson-4',
+      },
+      {
+        id: 'mod-5',
+        code: 'BST-05',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'ROOT NODE',
+        description: 'The topmost entry node with zero incoming parent pointers.',
+        criteria: 'Identify the root node and understand tree entry mechanics.',
+        lessonIndex: 4,
+        lessonId: 'lesson-5',
+      },
+      {
+        id: 'mod-6',
+        code: 'BST-06',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'PARENT NODE',
+        description: 'Nodes directly connecting downwards to one or more descendant children.',
+        criteria: 'Trace upward parent links required for node insertion and deletion.',
+        lessonIndex: 5,
+        lessonId: 'lesson-6',
+      },
+      {
+        id: 'mod-7',
+        code: 'BST-07',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'CHILD NODE',
+        description: 'Left and right branch descendants directly connected to parent nodes.',
+        criteria: 'Distinguish between smaller left children and larger right children.',
+        lessonIndex: 6,
+        lessonId: 'lesson-7',
+      },
+      {
+        id: 'mod-8',
+        code: 'BST-08',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'LEAF NODE',
+        description: 'Endpoint nodes at the bottom of the tree with zero child pointers.',
+        criteria: 'Identify leaf nodes and execute direct leaf severing.',
+        lessonIndex: 7,
+        lessonId: 'lesson-8',
+      },
+      {
+        id: 'mod-9',
+        code: 'BST-09',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'INTERNAL NODE',
+        description: 'Non-leaf routing nodes that possess at least one active child branch.',
+        criteria: 'Identify internal hub nodes that direct recursive binary searches.',
+        lessonIndex: 8,
+        lessonId: 'lesson-9',
+      },
+      {
+        id: 'mod-10',
+        code: 'BST-10',
+        category: 'FUNDAMENTALS',
+        categoryKey: 'fundamentals',
+        title: 'LEFT & RIGHT SUBTREE',
+        description: 'Subtrees containing all strictly smaller left and strictly larger right descendants.',
+        criteria: 'Analyze entire subtrees and verify global BST invariants.',
+        lessonIndex: 9,
+        lessonId: 'lesson-10',
+      },
 
-    // Derive terminology subtopics dynamically from current LESSONS (lessons 5 through 11)
-    const terminologyLessons = LESSONS.filter((l) => l.number >= 5 && l.number <= 11);
-    const terminologySubtopics = terminologyLessons.map((l) => ({
-      id: l.id,
-      title: l.shortTitle.replace(/^The\s+/, ''),
-      lessonIndex: LESSONS.findIndex((item) => item.id === l.id),
-    }));
+      // OPERATIONS (11-16)
+      {
+        id: 'mod-11',
+        code: 'BST-11',
+        category: 'OPERATIONS',
+        categoryKey: 'operations',
+        title: 'BST INSERTION',
+        description: 'Compare values starting from root and attach new node at an empty leaf slot.',
+        criteria: 'Place nodes in correct slots preserving the Left < Root < Right rule.',
+        lessonIndex: 12,
+        lessonId: 'lesson-13',
+      },
+      {
+        id: 'mod-12',
+        code: 'BST-12',
+        category: 'OPERATIONS',
+        categoryKey: 'operations',
+        title: 'BST DELETION',
+        description: 'Overview of node deletion across 3 structural cases without breaking order.',
+        criteria: 'Differentiate between 0, 1, and 2 children deletion strategies.',
+        lessonIndex: 13,
+        lessonId: 'lesson-14',
+      },
+      {
+        id: 'mod-13',
+        code: 'BST-13',
+        category: 'OPERATIONS',
+        categoryKey: 'operations',
+        title: 'DELETE A LEAF NODE',
+        description: 'Case 1 Deletion: Safely sever and remove nodes with 0 children directly.',
+        criteria: 'Nullify parent pointer without affecting any subtrees.',
+        lessonIndex: 14,
+        lessonId: 'lesson-15',
+      },
+      {
+        id: 'mod-14',
+        code: 'BST-14',
+        category: 'OPERATIONS',
+        categoryKey: 'operations',
+        title: 'DELETE A NODE WITH ONE CHILD',
+        description: 'Case 2 Deletion: Promote single child up to take the place of the deleted parent.',
+        criteria: 'Bypass deleted node and link parent directly to grandchild.',
+        lessonIndex: 15,
+        lessonId: 'lesson-16',
+      },
+      {
+        id: 'mod-15',
+        code: 'BST-15',
+        category: 'OPERATIONS',
+        categoryKey: 'operations',
+        title: 'DELETE A NODE WITH TWO CHILDREN',
+        description: 'Case 3 Deletion: Replace value with In-Order Successor and delete original successor.',
+        criteria: 'Execute 2-child replacement with smallest node in right subtree.',
+        lessonIndex: 16,
+        lessonId: 'lesson-17',
+      },
+      {
+        id: 'mod-16',
+        code: 'BST-16',
+        category: 'OPERATIONS',
+        categoryKey: 'operations',
+        title: 'IN-ORDER SUCCESSOR',
+        description: 'Find the next immediately larger value: smallest node in the right subtree.',
+        criteria: 'Locate leftmost node in the right branch of target node.',
+        lessonIndex: 17,
+        lessonId: 'lesson-18',
+      },
 
-    LESSONS.forEach((lesson, index) => {
-      // Hide the 7 terminology subtopics from top-level display: they are grouped under Terminology Recap
-      if (lesson.number >= 5 && lesson.number <= 11) {
-        return;
-      }
+      // TRAVERSALS (17-19)
+      {
+        id: 'mod-17',
+        code: 'BST-17',
+        category: 'TRAVERSALS',
+        categoryKey: 'traversals',
+        title: 'INORDER TRAVERSAL',
+        description: 'Left → Root → Right: Yields strictly ascending sorted order for any BST.',
+        criteria: 'Traverse nodes in sorted sequence and verify ascending output.',
+        lessonIndex: 19,
+        lessonId: 'lesson-20',
+      },
+      {
+        id: 'mod-18',
+        code: 'BST-18',
+        category: 'TRAVERSALS',
+        categoryKey: 'traversals',
+        title: 'PREORDER TRAVERSAL',
+        description: 'Root → Left → Right: Ideal for cloning, serializing, and reconstructing trees.',
+        criteria: 'Record root first before exploring left and right subtrees.',
+        lessonIndex: 20,
+        lessonId: 'lesson-21',
+      },
+      {
+        id: 'mod-19',
+        code: 'BST-19',
+        category: 'TRAVERSALS',
+        categoryKey: 'traversals',
+        title: 'POSTORDER TRAVERSAL',
+        description: 'Left → Right → Root: Ideal for bottom-up cleanup and deleting tree nodes.',
+        criteria: 'Process child branches completely before visiting parent nodes.',
+        lessonIndex: 21,
+        lessonId: 'lesson-22',
+      },
 
-      // Determine category based on curriculum topic number
-      let category: 'FUNDAMENTALS' | 'OPERATIONS' | 'TRAVERSALS' = 'FUNDAMENTALS';
-      let categoryKey: 'fundamentals' | 'operations' | 'traversals' = 'fundamentals';
-
-      if (lesson.number >= 20 && lesson.number <= 22) {
-        category = 'TRAVERSALS';
-        categoryKey = 'traversals';
-      } else if (lesson.number >= 12 && lesson.number <= 19) {
-        category = 'OPERATIONS';
-        categoryKey = 'operations';
-      }
-
-      const code = `BST-${String(displayCounter).padStart(2, '0')}`;
-      displayCounter++;
-
-      modules.push({
-        id: `mod-${lesson.id}`,
-        code,
-        category,
-        categoryKey,
-        title: lesson.shortTitle || lesson.title,
-        description: lesson.definition || lesson.tagline || '',
-        criteria:
-          lesson.tryIt?.instruction ||
-          lesson.keyConcept ||
-          `Master ${lesson.shortTitle || lesson.title} concepts and tree properties.`,
-        lessonIndex: index,
-        lessonId: lesson.id,
-      });
-
-      // Right after Chapter 4 (BST Property), insert Terminology Recap matching Learn TOC structure
-      if (lesson.number === 4) {
-        const recapCode = `BST-${String(displayCounter).padStart(2, '0')}`;
-        displayCounter++;
-
-        modules.push({
-          id: 'mod-terminology-recap',
-          code: recapCode,
-          category: 'FUNDAMENTALS',
-          categoryKey: 'fundamentals',
-          title: 'Terminology Recap',
-          description:
-            'Core anatomical terms: Root, Parent, Child, Leaf, Internal nodes, and Left/Right subtrees.',
-          criteria:
-            'Review core tree anatomy terms and understand the role of each node type.',
-          lessonId: 'terminology-recap',
-          lessonIndex: 4, // Leads directly to terminology section in Learn
-          isTerminologyRecap: true,
-          terminologySubtopics,
-        });
-      }
-    });
-
-    // Add interactive challenge game module
-    const gameCode = `BST-${String(displayCounter).padStart(2, '0')}`;
-    modules.push({
-      id: 'mod-game-challenges',
-      code: gameCode,
-      category: 'CHALLENGES',
-      categoryKey: 'challenges',
-      title: 'BST Interactive Game',
-      description: '5 interactive levels: BST Formation, Insertion, 3-Case Deletion, and Traversals.',
-      criteria: 'Complete all 5 game levels to achieve full interactive BST mastery.',
-      isGame: true,
-    });
-
-    return modules;
-  }, []);
+      // CHALLENGES (20)
+      {
+        id: 'mod-20',
+        code: 'BST-20',
+        category: 'CHALLENGES',
+        categoryKey: 'challenges',
+        title: 'BST INTERACTIVE GAME',
+        description: '5 interactive levels: BST Formation, Insertion, 3-Case Deletion, and Traversals.',
+        criteria: 'Complete all 5 game levels to achieve full interactive BST mastery.',
+        isGame: true,
+      },
+    ],
+    []
+  );
 
   // Helper to compute module status and progress
   const getModuleStatus = (module: BSTModuleItem) => {
@@ -164,40 +309,6 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
         isCompleted,
         isInProgress,
         statusLabel: isCompleted ? 'Completed' : isInProgress ? 'In Progress' : 'Not Started',
-      };
-    }
-
-    if (module.isTerminologyRecap) {
-      const isDirectDone = (stats?.completedLessons || []).includes('terminology-recap');
-      const subtopics = module.terminologySubtopics || [];
-      const completedSubs = subtopics.filter((sub) =>
-        (stats?.completedLessons || []).includes(sub.id)
-      ).length;
-
-      if (isDirectDone || (subtopics.length > 0 && completedSubs === subtopics.length)) {
-        return {
-          percent: 100,
-          isCompleted: true,
-          isInProgress: false,
-          statusLabel: 'Completed',
-        };
-      }
-
-      if (completedSubs > 0) {
-        const percent = Math.round((completedSubs / subtopics.length) * 100);
-        return {
-          percent,
-          isCompleted: false,
-          isInProgress: true,
-          statusLabel: `In Progress (${percent}%)`,
-        };
-      }
-
-      return {
-        percent: 0,
-        isCompleted: false,
-        isInProgress: false,
-        statusLabel: 'Not Started',
       };
     }
 
@@ -230,7 +341,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
     return ids.length;
   }, [stats?.completedGameChallenges]);
 
-  // Overall Completion Calculation (Dynamic across all curriculum modules)
+  // Overall Completion Calculation (Dynamic out of 20 activities)
   const completedActivitiesCount = useMemo(() => {
     return BST_MODULES.reduce((count, mod) => {
       const status = getModuleStatus(mod);
@@ -239,24 +350,42 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
   }, [BST_MODULES, stats]);
 
   const overallPercentage = useMemo(() => {
-    if (BST_MODULES.length === 0) return 0;
-    return Math.round((completedActivitiesCount / BST_MODULES.length) * 100);
-  }, [completedActivitiesCount, BST_MODULES.length]);
+    return Math.round((completedActivitiesCount / 20) * 100);
+  }, [completedActivitiesCount]);
 
   // Performance Stats Calculation
   const masteredCount = useMemo(() => {
+    // Count of fully completed activities + badges earned
     return completedActivitiesCount;
   }, [completedActivitiesCount]);
 
   const masterChallengesCount = useMemo(() => {
+    // 4 challenge categories / practice challenges
     const practiceCount = (stats?.completedPractice || []).length;
     return Math.min(4, practiceCount);
   }, [stats?.completedPractice]);
 
-  // Visual Lessons Section (2 Visual Lessons)
-  const visualLesson1Completed = (stats?.completedLessons || []).includes('lesson-1');
-  const visualLesson2Completed = (stats?.completedLessons || []).includes('lesson-4');
-  const visualLessonsCompletedCount = (visualLesson1Completed ? 1 : 0) + (visualLesson2Completed ? 1 : 0);
+  // BST Animations Section (Matching Visualize page topics)
+  const ANIMATION_TOPICS = useMemo(
+    () => [
+      { id: 'bst-rule', title: 'BST Rule', subtitle: 'Root 50 & Comparison Rules' },
+      { id: 'insertion', title: 'BST Insertion', subtitle: 'Insert 60 Step-by-Step' },
+      { id: 'search', title: 'BST Search', subtitle: 'Search Target in Tree' },
+      { id: 'deletion-case-1', title: 'BST Deletion – Case 1', subtitle: 'Delete Leaf Node' },
+      { id: 'deletion-case-2', title: 'BST Deletion – Case 2', subtitle: 'Delete Node with 1 Child' },
+      { id: 'deletion-case-3', title: 'BST Deletion – Case 3', subtitle: 'Delete Node with 2 Children' },
+      { id: 'inorder', title: 'Inorder Traversal', subtitle: 'Left → Node → Right (Sorted)' },
+      { id: 'preorder', title: 'Preorder Traversal', subtitle: 'Node → Left → Right' },
+      { id: 'postorder', title: 'Postorder Traversal', subtitle: 'Left → Right → Node' },
+    ],
+    []
+  );
+
+  const completedAnimationsCount = useMemo(() => {
+    return (completedVisualizeLessons || []).filter((id) =>
+      ANIMATION_TOPICS.some((topic) => topic.id === id)
+    ).length;
+  }, [completedVisualizeLessons, ANIMATION_TOPICS]);
 
   // Recommended Next Step (Find first incomplete BST module)
   const nextIncompleteModule = useMemo(() => {
@@ -286,8 +415,6 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
       if (onGoToGame) onGoToGame();
     } else if (typeof module.lessonIndex === 'number') {
       if (onGoToLearn) onGoToLearn(module.lessonIndex);
-    } else {
-      if (onGoToLearn) onGoToLearn(0);
     }
   };
 
@@ -349,7 +476,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
             <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-mono flex items-baseline gap-2">
               <span>{overallPercentage}%</span>
               <span className="text-xs sm:text-sm font-normal text-slate-500 dark:text-slate-400">
-                ({completedActivitiesCount} of {BST_MODULES.length} Activities)
+                ({completedActivitiesCount} of 20 Activities)
               </span>
             </div>
           </div>
@@ -383,8 +510,8 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
             {/* 3 Stats in a row */}
             <div className="grid grid-cols-3 gap-2 text-center pt-1">
               <div className="space-y-0.5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono flex items-center justify-center gap-1">
-                  <span className="text-slate-900 dark:text-white">{masteredCount}</span>
+                <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono flex items-center justify-center gap-1">
+                  <span>{masteredCount}</span>
                 </div>
                 <div className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">
                   MASTERED
@@ -394,7 +521,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
               <div className="space-y-0.5 border-x border-slate-200 dark:border-purple-900/30 px-1">
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono">
                   <span className="text-slate-900 dark:text-white">{completedActivitiesCount}</span>{' '}
-                  <span className="text-base text-indigo-500/80 dark:text-indigo-300/80">/ {BST_MODULES.length}</span>
+                  <span className="text-base text-indigo-500/80 dark:text-indigo-300/80">/ 20</span>
                 </div>
                 <div className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">
                   ACTIVITIES
@@ -437,13 +564,13 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
             <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight line-clamp-1">
               {nextIncompleteModule
                 ? nextIncompleteModule.title
-                : `CONGRATULATIONS! ALL ${BST_MODULES.length} BST MODULES MASTERED`}
+                : 'CONGRATULATIONS! ALL 20 BST MODULES MASTERED'}
             </h3>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
               {nextIncompleteModule
                 ? nextIncompleteModule.description
-                : `You have completed all ${BST_MODULES.length} Binary Search Tree lessons, operations, traversals, and interactive challenges.`}
+                : 'You have completed all 20 Binary Search Tree lessons, operations, traversals, and interactive challenges.'}
             </p>
           </div>
 
@@ -457,22 +584,22 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
         </div>
       </div>
 
-      {/* SECTION 1 — BST VISUAL LESSONS */}
+      {/* SECTION 1 — BST ANIMATIONS */}
       <div
-        id="section-visual-lessons"
+        id="section-animations"
         className="bg-white dark:bg-[#0b0f19] p-6 rounded-2xl border border-slate-200 dark:border-purple-900/30 shadow-xs dark:shadow-lg dark:shadow-purple-950/20 space-y-5"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
-              <Video className="w-5 h-5" />
+              <Play className="w-5 h-5 fill-current" />
             </div>
             <div>
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block">
-                VISUAL LESSONS
+                ANIMATIONS
               </span>
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                2 VISUAL LESSONS ({visualLessonsCompletedCount} / 2 Completed)
+                BST ANIMATIONS ({completedAnimationsCount} / {ANIMATION_TOPICS.length} Completed)
               </h2>
             </div>
           </div>
@@ -480,76 +607,58 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           <button
             onClick={() => {
               soundManager.playClick();
-              if (onGoToLearn) onGoToLearn(0);
+              if (onGoToVisualize) onGoToVisualize();
             }}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors cursor-pointer self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800/60 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-colors cursor-pointer self-start sm:self-auto"
           >
-            <span>Open Lessons Section</span>
+            <span>Open Animations</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* 2 Visual Lesson Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          {/* Visual Lesson 1 */}
-          <div
-            onClick={() => {
-              soundManager.playClick();
-              if (onGoToLearn) onGoToLearn(0);
-            }}
-            className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/90 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200 dark:border-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700/50 transition-all flex items-center justify-between gap-4 cursor-pointer group"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-2 h-2 rounded-full bg-purple-500" />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors truncate">
-                Introduction to Binary Search Trees
-              </span>
-            </div>
+        {/* Animation Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+          {ANIMATION_TOPICS.map((anim) => {
+            const isCompleted = (completedVisualizeLessons || []).includes(anim.id);
+            return (
+              <div
+                key={anim.id}
+                onClick={() => {
+                  soundManager.playClick();
+                  if (onGoToVisualize) onGoToVisualize(anim.id);
+                }}
+                className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200/90 dark:border-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700/60 transition-all flex items-center justify-between gap-3 cursor-pointer group hover:shadow-xs"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100/70 dark:bg-purple-950/90 flex items-center justify-center text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform flex-shrink-0">
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors block truncate">
+                      {anim.title}
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate">
+                      {anim.subtitle}
+                    </span>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-mono flex-shrink-0">
-              {visualLesson1Completed ? (
-                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-md">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Completed</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-transparent px-2 py-0.5 rounded-md">
-                  <Circle className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                  <span>Not completed</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Visual Lesson 2 */}
-          <div
-            onClick={() => {
-              soundManager.playClick();
-              if (onGoToLearn) onGoToLearn(3);
-            }}
-            className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/90 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200 dark:border-purple-900/30 hover:border-purple-700/50 transition-all flex items-center justify-between gap-4 cursor-pointer group"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-2 h-2 rounded-full bg-indigo-500" />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors truncate">
-                BST Properties & Structure
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-mono flex-shrink-0">
-              {visualLesson2Completed ? (
-                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-md">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Completed</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-transparent px-2 py-0.5 rounded-md">
-                  <Circle className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                  <span>Not completed</span>
-                </span>
-              )}
-            </div>
-          </div>
+                <div className="flex items-center gap-1.5 text-xs font-mono flex-shrink-0">
+                  {isCompleted ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-md">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Completed</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-transparent px-2 py-0.5 rounded-md">
+                      <Circle className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                      <span>Not completed</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -589,7 +698,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           </div>
 
           <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
-            Showing {filteredModules.length} of {BST_MODULES.length} modules
+            Showing {filteredModules.length} of 20 modules
           </div>
         </div>
 
@@ -612,7 +721,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
                       {module.code}
                     </span>
 
-                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-50 dark:cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60 uppercase">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60 uppercase">
                       {module.category}
                     </span>
 
@@ -652,47 +761,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
                     </span>
                   </div>
 
-                  {/* Special display for Terminology Topics */}
-                  {module.isTerminologyRecap && (
-                    <div className="pt-3 border-t border-slate-200 dark:border-purple-900/30 mt-3 space-y-2">
-                      <div className="text-xs font-mono font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>TERMINOLOGY TOPICS:</span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {module.terminologySubtopics?.map((sub) => {
-                          const isSubDone = (stats?.completedLessons || []).includes(sub.id);
-                          return (
-                            <div
-                              key={sub.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                soundManager.playClick();
-                                if (onGoToLearn && typeof sub.lessonIndex === 'number') {
-                                  onGoToLearn(sub.lessonIndex);
-                                }
-                              }}
-                              className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center justify-between gap-2 cursor-pointer transition-colors ${
-                                isSubDone
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-                                  : 'bg-slate-50 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-purple-400'
-                              }`}
-                            >
-                              <span className="truncate">{sub.title}</span>
-                              {isSubDone ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                              ) : (
-                                <Circle className="w-3 h-3 text-slate-400 dark:text-slate-600 flex-shrink-0" />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Special display for Game Levels in Game Module */}
+                  {/* Special display for Game Levels in Module 20 */}
                   {module.isGame && (
                     <div className="pt-3 border-t border-slate-200 dark:border-purple-900/30 mt-3 space-y-2">
                       <div className="text-xs font-mono font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">

@@ -3,7 +3,7 @@ import { Header, NavTab } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { HomePage } from './components/home/HomePage';
 import { LearnPage } from './components/learn/LearnPage';
-import { VideoPage } from './components/video/VideoPage';
+import { VideoPage, VisualizerTopic } from './components/video/VideoPage';
 import { PracticePage } from './components/practice/PracticePage';
 import { LabPage } from './components/lab/LabPage';
 import { QuizPage } from './components/quiz/QuizPage';
@@ -19,6 +19,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [selectedLearnTopicIndex, setSelectedLearnTopicIndex] = useState<number>(0);
+  const [selectedVisualizeTopic, setSelectedVisualizeTopic] = useState<VisualizerTopic | undefined>(undefined);
 
   const handleSelectLearnTopic = (index: number) => {
     setSelectedLearnTopicIndex(index);
@@ -76,7 +77,7 @@ export default function App() {
                 />
               )}
               {(activeTab === 'video' || activeTab === 'visual') && (
-                <VideoPage />
+                <VideoPage initialTopic={selectedVisualizeTopic} />
               )}
               {activeTab === 'practice' && (
                 <PracticePage onGoToQuiz={() => setActiveTab('quiz')} />
@@ -98,6 +99,12 @@ export default function App() {
                     } else {
                       setActiveTab('learn');
                     }
+                  }}
+                  onGoToVisualize={(topic) => {
+                    if (topic) {
+                      setSelectedVisualizeTopic(topic as VisualizerTopic);
+                    }
+                    setActiveTab('video');
                   }}
                   onGoToGame={() => setActiveTab('game')}
                   onGoToQuiz={() => setActiveTab('quiz')}
