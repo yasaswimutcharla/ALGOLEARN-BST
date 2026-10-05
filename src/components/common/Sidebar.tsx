@@ -27,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onClose,
 }) => {
+  const [hoveredItem, setHoveredItem] = React.useState<NavTab | null>(null);
   const {
     stats,
     quizAnsweredCount,
@@ -131,11 +132,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               (item.id === 'video' && activeTab === 'visual') ||
               (item.id === 'learn' && (activeTab === 'practice' || activeTab === 'lab'));
 
+            const isHovered = hoveredItem === item.id;
+
             return (
               <button
                 key={item.id}
                 id={`sidebar-link-${item.id}`}
                 onClick={() => handleNavClick(item.id)}
+                onMouseEnter={() => setHoveredItem(item.id)}
+                onMouseLeave={() => setHoveredItem(null)}
                 className={`group/item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   isActive
                     ? 'bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/60 shadow-2xs'
@@ -155,10 +160,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="font-semibold">{item.label}</span>
                 </div>
 
-                {/* Progress Badge: Appears ONLY when cursor hovers over THIS particular navigation item */}
+                {/* Progress Badge: Strictly visible ONLY on cursor hover, never permanently visible */}
                 <span
                   id={`sidebar-progress-${item.id}`}
-                  className={`transition-all duration-200 text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap opacity-0 translate-x-1 pointer-events-none group-hover/item:opacity-100 group-hover/item:translate-x-0 group-hover/item:pointer-events-auto ${
+                  className={`transition-all duration-200 text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap ${
+                    isHovered
+                      ? 'opacity-100 translate-x-0'
+                      : 'opacity-0 translate-x-1 pointer-events-none'
+                  } ${
                     isActive
                       ? 'bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-700'
                       : 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60'
