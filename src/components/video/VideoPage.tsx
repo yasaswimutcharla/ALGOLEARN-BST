@@ -820,15 +820,15 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
     switch (status) {
       case 'active':
         return {
-          fill: '#9333ea', // purple-600
-          stroke: '#d8b4fe',
+          fill: '#6366f1', // bluish violet indigo-500
+          stroke: '#c7d2fe', // indigo-200
           text: '#ffffff',
           halo: true,
         };
       case 'visited':
         return {
-          fill: '#4f46e5', // indigo-600
-          stroke: '#a5b4fc',
+          fill: '#4338ca', // indigo-700
+          stroke: '#a5b4fc', // indigo-300
           text: '#ffffff',
           halo: false,
         };
@@ -883,7 +883,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-2xs">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs">
             <Binary className="w-4 h-4" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white font-mono">
@@ -896,7 +896,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
       </div>
 
       {/* Selectable Topic Tabs (NO visible scrollbar in any browser/theme) */}
-      <div className="bg-white dark:bg-[#0b0f19] p-1.5 rounded-2xl border border-slate-200 dark:border-purple-900/30 shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-[#0b0f19] p-1.5 rounded-2xl border border-slate-200 dark:border-indigo-900/30 shadow-xs overflow-hidden">
         <div
           className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -909,7 +909,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
                 onClick={() => handleSelectTopic(tab.id)}
                 className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold tracking-wide whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-purple-600 text-white shadow-xs font-bold'
+                    ? 'bg-indigo-600 text-white shadow-xs font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                 }`}
               >
@@ -921,11 +921,11 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
       </div>
 
       {/* Main Animation Area (Directly after tabs - No extra cards or empty spaces) */}
-      <div className="bg-white dark:bg-[#0b0f19] rounded-2xl border border-slate-200 dark:border-purple-900/30 p-4 sm:p-6 shadow-xs flex flex-col items-center justify-between min-h-[350px] space-y-4">
+      <div className="bg-white dark:bg-[#0b0f19] rounded-2xl border border-slate-200 dark:border-indigo-900/30 p-4 sm:p-6 shadow-xs flex flex-col items-center justify-between min-h-[350px] space-y-4">
         {/* Step Indicator & Direction Banner */}
         <div className="w-full flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
           <div className="flex items-center gap-2.5 font-mono text-xs">
-            <span className="px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold border border-purple-200 dark:border-purple-800/60">
+            <span className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800/60">
               Step {currentStep?.stepNumber || 1} of {currentStep?.totalSteps || 1}
             </span>
             {currentStep?.comparisonText && (
@@ -981,14 +981,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
                 <circle
                   r={22}
                   fill="none"
-                  stroke="#a855f7"
+                  stroke="#818cf8"
                   strokeWidth={2}
                   strokeDasharray="4 3"
                 />
                 <text
                   textAnchor="middle"
                   dominantBaseline="central"
-                  className="text-[10px] font-mono fill-purple-600 dark:fill-purple-400 font-bold"
+                  className="text-[10px] font-mono fill-indigo-600 dark:fill-indigo-400 font-bold"
                 >
                   Null
                 </text>
@@ -1061,7 +1061,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
               {currentStep.traversalOutput.map((val, i) => (
                 <div
                   key={i}
-                  className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-950/80 border border-purple-300 dark:border-purple-700 flex items-center justify-center font-mono font-bold text-sm text-purple-700 dark:text-purple-300 shadow-2xs"
+                  className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-300 dark:border-indigo-700 flex items-center justify-center font-mono font-bold text-sm text-indigo-700 dark:text-indigo-300 shadow-2xs"
                 >
                   {val}
                 </div>
@@ -1079,7 +1079,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
       </div>
 
       {/* Short Explanation Card ("What is happening?") */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-purple-900/30 space-y-1 shadow-xs">
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-indigo-900/30 space-y-1 shadow-xs">
         <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           What is happening?
         </span>
@@ -1088,8 +1088,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
         </p>
       </div>
 
-      {/* Animation Controls: Previous, Play/Pause, Next, Restart, Animation Speed */}
-      <div className="bg-white dark:bg-[#0b0f19] p-4 rounded-2xl border border-slate-200 dark:border-purple-900/30 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+      {/* Animation Controls: Previous, Play/Pause, Next, Animation Speed */}
+      <div className="bg-white dark:bg-[#0b0f19] p-4 rounded-2xl border border-slate-200 dark:border-indigo-900/30 flex flex-wrap items-center justify-between gap-4 shadow-xs">
         {/* Playback Controls */}
         <div className="flex items-center gap-2">
           {/* Previous Button */}
@@ -1099,7 +1099,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
             className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
               currentStepIndex === 0
                 ? 'opacity-40 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200 dark:border-purple-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
+                : 'border-slate-200 dark:border-indigo-900/40 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
             }`}
             title="Previous step"
           >
@@ -1110,7 +1110,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
           {/* Play / Pause Toggle Button */}
           <button
             onClick={handlePlayPause}
-            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-purple-600/25 cursor-pointer active:scale-95"
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/25 cursor-pointer active:scale-95"
             title={isPlaying ? 'Pause animation' : 'Play animation'}
           >
             {isPlaying ? (
@@ -1133,7 +1133,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
             className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
               currentStepIndex >= steps.length - 1
                 ? 'opacity-40 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200 dark:border-purple-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
+                : 'border-slate-200 dark:border-indigo-900/40 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
             }`}
             title="Next step"
           >
@@ -1157,7 +1157,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
                   }}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     isSpdActive
-                      ? 'bg-purple-600 text-white shadow-xs font-extrabold'
+                      ? 'bg-indigo-600 text-white shadow-xs font-extrabold'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >

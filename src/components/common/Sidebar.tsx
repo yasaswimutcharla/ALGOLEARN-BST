@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   LayoutGrid,
   BookOpen,
@@ -33,8 +33,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     calculateOverallProgress,
     completedVisualizeLessons,
   } = useUserProgress();
-
-  const [isMenuHovered, setIsMenuHovered] = useState<boolean>(false);
 
   // Exact counts matching curriculum breakdown
   const learnCompleted = Math.min(stats?.completedLessons?.length || 0, 6);
@@ -99,9 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Clean Left Sidebar */}
       <aside
         id="main-left-sidebar"
-        onMouseEnter={() => setIsMenuHovered(true)}
-        onMouseLeave={() => setIsMenuHovered(false)}
-        className={`group/sidebar fixed top-0 bottom-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 flex flex-col border-r border-slate-200/80 dark:border-slate-800 shadow-sm transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 flex flex-col border-r border-slate-200/80 dark:border-slate-800 shadow-sm transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -140,7 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.id}
                 id={`sidebar-link-${item.id}`}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`group/item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   isActive
                     ? 'bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/60 shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-slate-100 border border-transparent'
@@ -159,17 +155,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="font-semibold">{item.label}</span>
                 </div>
 
-                {/* Progress Badge: Always visible for Visualize per user requirement, and on hover for others */}
+                {/* Progress Badge: Appears ONLY when cursor hovers over THIS particular navigation item */}
                 <span
                   id={`sidebar-progress-${item.id}`}
-                  className={`transition-all duration-300 text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap ${
+                  className={`transition-all duration-200 text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap opacity-0 translate-x-1 pointer-events-none group-hover/item:opacity-100 group-hover/item:translate-x-0 group-hover/item:pointer-events-auto ${
                     isActive
                       ? 'bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-700'
                       : 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60'
-                  } ${
-                    item.id === 'video' || isMenuHovered
-                      ? 'opacity-100 translate-x-0'
-                      : 'opacity-0 translate-x-1 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0 group-hover/sidebar:pointer-events-auto'
                   }`}
                 >
                   {getProgressBadge(item.id)}
