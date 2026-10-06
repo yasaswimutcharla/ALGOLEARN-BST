@@ -141,18 +141,16 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* 3. ↩️ Reset / Restart Control Button (Circular) - Hidden on Visualize page */}
-            {activeTab !== 'video' && activeTab !== 'visual' && (
-              <button
-                id="header-reset-activity-btn"
-                onClick={() => setShowResetConfirmModal(true)}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors shadow-2xs flex items-center justify-center cursor-pointer"
-                title="Reset Progress to Zero"
-                aria-label="Reset Progress to Zero"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            )}
+            {/* 3. ↩️ Reset / Restart Control Button (Circular) */}
+            <button
+              id="header-reset-activity-btn"
+              onClick={() => setShowResetConfirmModal(true)}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors shadow-2xs flex items-center justify-center cursor-pointer"
+              title="Reset Progress to Zero"
+              aria-label="Reset Progress to Zero"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
