@@ -425,26 +425,28 @@ export const TopicStageRenderer: React.FC<TopicStageRendererProps> = ({
 
                   {/* Top Badge (if any) */}
                   {node.badge && (
-                    <g transform={`translate(${node.x}, ${node.y - 23})`}>
+                    <g transform={`translate(${node.x}, ${node.y - 25})`}>
                       <rect
-                        x="-24"
-                        y="-8"
-                        width="48"
-                        height="13"
-                        rx="4"
-                        fill={isDark ? '#0f172a' : '#0F172A'}
-                        stroke={isDark ? '#334155' : 'none'}
-                        strokeWidth="1"
-                        className="opacity-90"
+                        x="-30"
+                        y="-10"
+                        width="60"
+                        height="18"
+                        rx="5"
+                        fill="#000000"
+                        stroke={isDark ? '#475569' : '#000000'}
+                        strokeWidth="1.5"
+                        className="shadow-xs"
                       />
                       <text
                         x="0"
                         y="1.5"
                         textAnchor="middle"
+                        dominantBaseline="central"
                         fill="#FFFFFF"
-                        fontSize="7.5"
-                        fontWeight="bold"
-                        letterSpacing="0.05em"
+                        fontSize="9.5"
+                        fontWeight="900"
+                        letterSpacing="0.06em"
+                        fontFamily="monospace"
                       >
                         {node.badge}
                       </text>

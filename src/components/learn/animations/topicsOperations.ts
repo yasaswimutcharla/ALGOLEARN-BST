@@ -403,10 +403,10 @@ export const TOPICS_OPERATIONS: Record<number, TopicAnimationData> = {
         why: 'Parent node 30 now has left child = null.',
         banner: { text: '✓ Leaf Node 20 Deleted Cleanly', subtext: 'Parent left pointer set to null', type: 'SUCCESS' },
         nodes: [
-          { id: '50', value: 50, x: 270, y: 40, state: 'found' },
-          { id: '30', value: 30, x: 180, y: 110, state: 'found' },
-          { id: '70', value: 70, x: 360, y: 110, state: 'found' },
-          { id: '40', value: 40, x: 230, y: 180, state: 'found' },
+          { id: '50', value: 50, x: 270, y: 40, state: 'default' },
+          { id: '30', value: 30, x: 180, y: 110, state: 'default' },
+          { id: '70', value: 70, x: 360, y: 110, state: 'default' },
+          { id: '40', value: 40, x: 230, y: 180, state: 'default' },
         ],
         edges: [
           { fromId: '50', toId: '30', state: 'default' },
@@ -531,9 +531,9 @@ export const TOPICS_OPERATIONS: Record<number, TopicAnimationData> = {
         why: 'Tree is balanced and BST property is fully preserved (40 < 50).',
         banner: { text: '✓ Child 40 Takes Position', subtext: 'Valid BST preserved (40 < 50)', type: 'SUCCESS' },
         nodes: [
-          { id: '50', value: 50, x: 270, y: 40, state: 'found' },
-          { id: '40', value: 40, x: 180, y: 110, state: 'found' },
-          { id: '70', value: 70, x: 360, y: 110, state: 'found' },
+          { id: '50', value: 50, x: 270, y: 40, state: 'default' },
+          { id: '40', value: 40, x: 180, y: 110, state: 'default' },
+          { id: '70', value: 70, x: 360, y: 110, state: 'default' },
         ],
         edges: [
           { fromId: '50', toId: '40', state: 'default' },
@@ -690,10 +690,10 @@ export const TOPICS_OPERATIONS: Record<number, TopicAnimationData> = {
         why: 'Left subtree {30} < 60 < Right subtree {70, 80}.',
         banner: { text: '✓ Case 3 Deletion Complete', subtext: 'BST properties 100% intact', type: 'SUCCESS' },
         nodes: [
-          { id: '50', value: 60, x: 270, y: 40, state: 'found', badge: 'ROOT: 60' },
-          { id: '30', value: 30, x: 180, y: 110, state: 'found' },
-          { id: '70', value: 70, x: 360, y: 110, state: 'found' },
-          { id: '80', value: 80, x: 400, y: 180, state: 'found' },
+          { id: '50', value: 60, x: 270, y: 40, state: 'default' },
+          { id: '30', value: 30, x: 180, y: 110, state: 'default' },
+          { id: '70', value: 70, x: 360, y: 110, state: 'default' },
+          { id: '80', value: 80, x: 400, y: 180, state: 'default' },
         ],
         edges: [
           { fromId: '50', toId: '30', state: 'default' },

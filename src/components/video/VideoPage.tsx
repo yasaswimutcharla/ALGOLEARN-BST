@@ -223,7 +223,7 @@ function getInsertionSteps(): AnimationStep[] {
         { ...POS_70, status: 'visited' },
         { ...POS_20, status: 'default' },
         { ...POS_40, status: 'default' },
-        { ...POS_60, status: 'success', label: '60' },
+        { ...POS_60, status: 'success' },
       ],
       edges: [
         { from: 50, to: 30, isHighlighted: false },
@@ -245,7 +245,7 @@ function getInsertionSteps(): AnimationStep[] {
         { ...POS_70, status: 'default' },
         { ...POS_20, status: 'default' },
         { ...POS_40, status: 'default' },
-        { ...POS_60, status: 'success', label: '60' },
+        { ...POS_60, status: 'success' },
       ],
       edges: [
         { from: 50, to: 30, isHighlighted: false },
@@ -392,7 +392,7 @@ function getDeletionCase1Steps(): AnimationStep[] {
       comparisonDirection: 'none',
       nodes: [
         { ...POS_50, status: 'default' },
-        { ...POS_30, status: 'success' },
+        { ...POS_30, status: 'default' },
         { ...POS_70, status: 'default' },
         { ...POS_40, status: 'default' },
       ],
@@ -463,7 +463,7 @@ function getDeletionCase2Steps(): AnimationStep[] {
         { ...POS_30, status: 'visited' },
         { ...POS_70, status: 'default' },
         { ...POS_20, status: 'default' },
-        { value: 35, x: POS_40.x, y: POS_40.y, status: 'success', label: 'Promoted' },
+        { value: 35, x: POS_40.x, y: POS_40.y, status: 'default' },
       ],
       edges: [
         { from: 50, to: 30, isHighlighted: false },
@@ -483,7 +483,7 @@ function getDeletionCase2Steps(): AnimationStep[] {
         { ...POS_30, status: 'default' },
         { ...POS_70, status: 'default' },
         { ...POS_20, status: 'default' },
-        { value: 35, x: POS_40.x, y: POS_40.y, status: 'default', label: '35' },
+        { value: 35, x: POS_40.x, y: POS_40.y, status: 'default' },
       ],
       edges: [
         { from: 50, to: 30, isHighlighted: false },
@@ -566,14 +566,14 @@ function getDeletionCase3Steps(): AnimationStep[] {
       comparisonDirection: 'none',
       nodes: [
         { ...POS_50, status: 'default' },
-        { value: 40, x: POS_30.x, y: POS_30.y, status: 'success', label: 'Replaced with 40' },
+        { value: 40, x: POS_30.x, y: POS_30.y, status: 'default' },
         { ...POS_70, status: 'default' },
         { ...POS_20, status: 'default' },
       ],
       edges: [
-        { from: 50, to: 40, isHighlighted: true },
+        { from: 50, to: 40, isHighlighted: false },
         { from: 50, to: 70, isHighlighted: false },
-        { from: 40, to: 20, isHighlighted: true },
+        { from: 40, to: 20, isHighlighted: false },
       ],
     },
     {
@@ -584,7 +584,7 @@ function getDeletionCase3Steps(): AnimationStep[] {
       comparisonDirection: 'none',
       nodes: [
         { ...POS_50, status: 'default' },
-        { value: 40, x: POS_30.x, y: POS_30.y, status: 'default', label: '40' },
+        { value: 40, x: POS_30.x, y: POS_30.y, status: 'default' },
         { ...POS_70, status: 'default' },
         { ...POS_20, status: 'default' },
       ],
@@ -924,20 +924,20 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
       <div className="bg-white dark:bg-[#0b0f19] rounded-2xl border border-slate-200 dark:border-indigo-900/30 p-4 sm:p-6 shadow-xs flex flex-col items-center justify-between min-h-[350px] space-y-4">
         {/* Step Indicator & Direction Banner */}
         <div className="w-full flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-          <div className="flex items-center gap-2.5 font-mono text-xs">
-            <span className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800/60">
+          <div className="flex items-center gap-2.5 font-mono text-xs flex-wrap">
+            <span className="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-black dark:text-white font-mono font-black text-xs border-2 border-black dark:border-slate-700 shadow-sm">
               Step {currentStep?.stepNumber || 1} of {currentStep?.totalSteps || 1}
             </span>
             {currentStep?.comparisonText && (
-              <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span className="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-black dark:text-white border-2 border-black dark:border-slate-700 font-mono font-black text-xs tracking-wide shadow-sm flex items-center gap-2">
                 {currentStep.comparisonDirection === 'left' && (
-                  <ArrowLeft className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <ArrowLeft className="w-3.5 h-3.5 text-white" />
                 )}
                 {currentStep.comparisonDirection === 'right' && (
-                  <ArrowRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <ArrowRight className="w-3.5 h-3.5 text-white" />
                 )}
                 {currentStep.comparisonDirection === 'found' && (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                 )}
                 <span>{currentStep.comparisonText}</span>
               </span>
@@ -981,16 +981,17 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
                 <circle
                   r={22}
                   fill="none"
-                  stroke="#818cf8"
-                  strokeWidth={2}
+                  stroke="#000000"
+                  strokeWidth={2.5}
                   strokeDasharray="4 3"
+                  className="dark:stroke-slate-300"
                 />
                 <text
                   textAnchor="middle"
                   dominantBaseline="central"
-                  className="text-[10px] font-mono fill-indigo-600 dark:fill-indigo-400 font-bold"
+                  className="text-xs font-mono fill-black dark:fill-white font-black"
                 >
-                  Null
+                  {currentStep.emptySlot.label || 'Null'}
                 </text>
               </g>
             )}
@@ -1035,16 +1036,44 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
                     {node.value}
                   </text>
 
-                  {/* Label below node */}
-                  {node.label && (
-                    <text
-                      y={34}
-                      textAnchor="middle"
-                      className="text-[10px] font-mono font-bold fill-slate-500 dark:fill-slate-400 select-none pointer-events-none"
-                    >
-                      {node.label}
-                    </text>
-                  )}
+                  {/* Highlight Note Label below node (Root, Compare, Left, Right, etc.) in Thick Black Theme */}
+                  {node.label && node.label.trim() !== String(node.value) && (() => {
+                    const badgeWidth = Math.max(node.label.length * 8.5 + 22, 54);
+                    return (
+                      <g transform="translate(0, 36)" className="select-none pointer-events-none">
+                        {/* Callout notch pointing to bottom of node circle */}
+                        <polygon
+                          points="-5,-11 0,-15 5,-11"
+                          fill="#000000"
+                          stroke="#000000"
+                          strokeWidth={1}
+                        />
+                        {/* Solid thick black badge */}
+                        <rect
+                          x={-badgeWidth / 2}
+                          y={-11}
+                          width={badgeWidth}
+                          height={22}
+                          rx={6}
+                          fill="#000000"
+                          stroke="#000000"
+                          strokeWidth={2}
+                          className="dark:stroke-slate-600"
+                        />
+                        {/* Thick, high-contrast, crystal-clear font */}
+                        <text
+                          x={0}
+                          y={1}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill="#ffffff"
+                          className="text-[11.5px] font-mono font-black select-none pointer-events-none tracking-wider uppercase"
+                        >
+                          {node.label}
+                        </text>
+                      </g>
+                    );
+                  })()}
                 </g>
               );
             })}
@@ -1080,7 +1109,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
 
       {/* Short Explanation Card ("What is happening?") */}
       <div className="p-4 rounded-2xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-indigo-900/30 space-y-1 shadow-xs">
-        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <span className="text-xs font-mono font-black uppercase tracking-wider text-black dark:text-white">
           What is happening?
         </span>
         <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">

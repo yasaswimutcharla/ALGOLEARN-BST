@@ -13,8 +13,6 @@ import {
   Zap,
   ListOrdered,
   Send,
-  Undo2,
-  Redo2,
   Square,
 } from 'lucide-react';
 import { GAME_CHALLENGES } from '../../data/gameChallengesData';
@@ -1758,38 +1756,8 @@ const GamePageContent: React.FC = () => {
                 </p>
               </div>
 
-              {/* Action Buttons: Undo, Redo, Hint, Guided Solve, Reset */}
+              {/* Action Buttons: Hint, Guided Solve, Reset */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <button
-                  id="game-undo-btn"
-                  onClick={handleUndo}
-                  disabled={undoStack.length === 0}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors shadow-2xs ${
-                    undoStack.length > 0
-                      ? 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-pointer'
-                      : 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-slate-200 dark:border-slate-800'
-                  }`}
-                  title="Undo last insertion"
-                >
-                  <Undo2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Undo</span>
-                </button>
-
-                <button
-                  id="game-redo-btn"
-                  onClick={handleRedo}
-                  disabled={redoStack.length === 0}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors shadow-2xs ${
-                    redoStack.length > 0
-                      ? 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-pointer'
-                      : 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-slate-200 dark:border-slate-800'
-                  }`}
-                  title="Redo insertion"
-                >
-                  <Redo2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Redo</span>
-                </button>
-
                 <button
                   id="game-hint-btn"
                   onClick={handleUseHint}
@@ -1812,15 +1780,6 @@ const GamePageContent: React.FC = () => {
                 >
                   <Compass className="w-3.5 h-3.5" />
                   <span>{showGuidedSolve ? 'Stop Guided' : 'Guided Solve'}</span>
-                </button>
-
-                <button
-                  id="game-reset-btn"
-                  onClick={() => resetChallenge(challenge)}
-                  className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  title="Reset challenge"
-                >
-                  <RotateCcw className="w-4 h-4" />
                 </button>
               </div>
             </div>
