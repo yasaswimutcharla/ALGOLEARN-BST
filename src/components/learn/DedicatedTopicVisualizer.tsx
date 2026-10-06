@@ -174,17 +174,6 @@ export const DedicatedTopicVisualizer: React.FC<DedicatedTopicVisualizerProps> =
         {/* Left side: Navigation controls */}
         <div className="flex items-center gap-1.5">
           <button
-            id="anim-prev-btn"
-            disabled={currentStepIndex === 0}
-            onClick={handlePrev}
-            title="Previous Step"
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Previous Step</span>
-          </button>
-
-          <button
             id="anim-play-btn"
             onClick={togglePlay}
             title={isPlaying ? 'Pause Animation' : 'Play Steps'}
@@ -196,17 +185,6 @@ export const DedicatedTopicVisualizer: React.FC<DedicatedTopicVisualizerProps> =
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
             <span>{isPlaying ? 'Pause' : 'Play Steps'}</span>
-          </button>
-
-          <button
-            id="anim-next-btn"
-            disabled={currentStepIndex === totalSteps - 1}
-            onClick={handleNext}
-            title="Next Step"
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <span className="hidden sm:inline">Next Step</span>
-            <ChevronRight className="w-4 h-4" />
           </button>
 
           <button

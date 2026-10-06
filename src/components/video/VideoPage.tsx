@@ -1117,29 +1117,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
         </p>
       </div>
 
-      {/* Animation Controls: Previous, Play/Pause, Next, Animation Speed */}
+      {/* Animation Controls: Play/Pause, Animation Speed */}
       <div className="bg-white dark:bg-[#0b0f19] p-4 rounded-2xl border border-slate-200 dark:border-indigo-900/30 flex flex-wrap items-center justify-between gap-4 shadow-xs">
         {/* Playback Controls */}
         <div className="flex items-center gap-2">
-          {/* Previous Button */}
-          <button
-            onClick={handlePrevious}
-            disabled={currentStepIndex === 0}
-            className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-              currentStepIndex === 0
-                ? 'opacity-40 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200 dark:border-indigo-900/40 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
-            }`}
-            title="Previous step"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Previous</span>
-          </button>
-
           {/* Play / Pause Toggle Button */}
           <button
             onClick={handlePlayPause}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/25 cursor-pointer active:scale-95"
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-indigo-600/25 cursor-pointer active:scale-95"
             title={isPlaying ? 'Pause animation' : 'Play animation'}
           >
             {isPlaying ? (
@@ -1153,21 +1138,6 @@ export const VideoPage: React.FC<VideoPageProps> = ({ initialTopic }) => {
                 <span>Play</span>
               </>
             )}
-          </button>
-
-          {/* Next Button */}
-          <button
-            onClick={handleNext}
-            disabled={currentStepIndex >= steps.length - 1}
-            className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-              currentStepIndex >= steps.length - 1
-                ? 'opacity-40 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200 dark:border-indigo-900/40 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
-            }`}
-            title="Next step"
-          >
-            <span>Next</span>
-            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
