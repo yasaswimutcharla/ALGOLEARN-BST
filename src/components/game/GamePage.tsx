@@ -1669,7 +1669,7 @@ const GamePageContent: React.FC = () => {
   };
 
   return (
-    <div id="game-page-root" className="w-full max-w-5xl mx-auto space-y-6 pb-12">
+    <div id="game-page-root" className={`w-full mx-auto space-y-6 pb-12 ${challenge.level === 4 ? 'max-w-5xl' : 'max-w-6xl'}`}>
       {/* 1. TOP: Level Progression Track */}
       <LevelProgressTrack
         challenges={GAME_CHALLENGES}
@@ -1716,601 +1716,346 @@ const GamePageContent: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Centered Main Game Arena: Challenge Instructions, Interactive Tree Workspace & Dustbin Zone */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Interactive Tree Canvas (8 cols on desktop) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 p-5 relative">
-            {/* Canvas Sub-Header: Mission Prompt & Action Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  {challenge.level === 1 && 'Level 1 Mission: Basic BST Formation'}
-                  {challenge.level === 2 && 'Level 2 Mission: BST Insertion Challenge'}
-                  {challenge.level === 3 && 'Level 3 Mission: Advanced BST Formation (11 Nodes)'}
-                  {challenge.level === 4 && `Level 4 Mission: BST Deletion (${currentLevel4Stage?.caseType || 'Mastery'})`}
-                  {challenge.level === 5 && `Level 5 Mission: BST Traversals (${activeTraversalType.toUpperCase()})`}
-                </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-0.5">
-                  {challenge.level === 1 && 'Drag numbers from the tray below and place each node using Left < Root < Right.'}
-                  {challenge.level === 2 && (
-                    <span>
-                      👉 Current Target: Insert <strong className="text-indigo-600 dark:text-indigo-400 text-sm font-mono">{currentLevel2Target}</strong> into the BST. Follow comparison rules from Root 50.
-                    </span>
-                  )}
-                  {challenge.level === 3 && 'Place each node from the sequence to build the multi-tier zigzag BST.'}
-                  {challenge.level === 4 && (
-                    <span>
-                      👉 Target: Delete node <strong className="text-rose-600 dark:text-rose-400 font-mono text-sm">{currentLevel4Stage?.targetNode}</strong>. Drag it to the 🗑️ Dustbin zone!
-                    </span>
-                  )}
-                  {challenge.level === 5 && (
-                    <span>
-                      👉 Click the nodes on the tree in exact <strong>{activeTraversalType.toUpperCase()}</strong> order (
-                      {activeTraversalType === 'inorder' && 'Left → Root → Right'}
-                      {activeTraversalType === 'preorder' && 'Root → Left → Right'}
-                      {activeTraversalType === 'postorder' && 'Left → Right → Root'}
-                      ).
-                    </span>
-                  )}
-                </p>
-              </div>
-
-              {/* Action Buttons: Hint, Guided Solve, Reset */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <button
-                  id="game-hint-btn"
-                  onClick={handleUseHint}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-2xs"
-                  title="Need a hint?"
-                >
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Hint {hintLevel > 0 ? `(${hintLevel}/3)` : ''}</span>
-                </button>
-
-                <button
-                  id="game-guided-solve-btn"
-                  onClick={() => setShowGuidedSolve(!showGuidedSolve)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer shadow-2xs ${
-                    showGuidedSolve
-                      ? 'bg-indigo-600 text-white border-indigo-700'
-                      : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                  }`}
-                  title="Toggle Guided Solve (Automatic step-by-step solver)"
-                >
-                  <Compass className="w-3.5 h-3.5" />
-                  <span>{showGuidedSolve ? 'Stop Guided' : 'Guided Solve'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Level 5 Traversal Mode Selector Tabs */}
-            {challenge.level === 5 && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 pb-2">
-                {(['inorder', 'preorder', 'postorder'] as TraversalType[]).map((tType) => {
-                  const isActive = activeTraversalType === tType;
-                  const isDone = completedTraversals[tType];
-
-                  return (
-                    <button
-                      key={tType}
-                      id={`game-traversal-tab-${tType}`}
-                      onClick={() => handleSwitchTraversal(tType)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                        isActive
-                          ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 shadow-md'
-                          : isDone
-                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 text-emerald-800 dark:text-emerald-200'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
-                      }`}
-                    >
-                      <span>{tType.charAt(0).toUpperCase() + tType.slice(1)}</span>
-                      {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Hint Display Banner */}
-            <AnimatePresence>
-              {hintLevel > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2"
-                >
-                  <Lightbulb className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="font-semibold">
-                      {hintLevel === 1 && `Hint Tier 1: ${challenge.hints.tier1}`}
-                      {hintLevel === 2 && `Hint Tier 2: ${challenge.hints.tier2}`}
-                      {hintLevel === 3 && `Hint Tier 3: ${challenge.hints.tier3}`}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Top Queue Tray: Element Queue for Levels 1, 2, 3 */}
-            {(challenge.numbersToInsert || []).length > 0 && (
-              <div id="elements-top-tray" className="mt-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Queue ({challenge.numbersToInsert?.length || 0} total)</span>
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
-                      Step {challenge.numbersToInsert ? challenge.numbersToInsert.length - remainingTrayNumbers.length + 1 : 1} of {totalStepsInChallenge}
-                    </span>
-                  </div>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    {nextNumberToInsert !== null ? (
-                      <span>Next: <strong className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{nextNumberToInsert}</strong></span>
-                    ) : (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 inline" /> All Placed!
-                      </span>
-                    )}
+      {/* 3. Main Game Arena */}
+      {challenge.level === 4 ? (
+        /* LEVEL 4: PRESERVE EXACT CURRENT SMALL-BOX GAMEPLAY LAYOUT & DELETION INTERFACE */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Interactive Tree Canvas (8 cols on desktop) */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 p-5 relative">
+              {/* Canvas Sub-Header: Mission Prompt & Action Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    Level 4 Mission: BST Deletion ({currentLevel4Stage?.caseType || 'Mastery'})
                   </span>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-0.5">
+                    👉 Target: Delete node <strong className="text-rose-600 dark:text-rose-400 font-mono text-sm">{currentLevel4Stage?.targetNode}</strong>. Drag it to the 🗑️ Dustbin zone!
+                  </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2.5 min-h-12">
-                  {challenge.numbersToInsert?.map((num, idx) => {
-                    const isPlaced = !remainingTrayNumbers.includes(num);
-                    const isNextTarget = remainingTrayNumbers[0] === num;
-                    const isSelected = selectedDragNumber === num;
+                {/* Action Buttons: Hint, Guided Solve, Reset */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    id="game-hint-btn"
+                    onClick={handleUseHint}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-2xs"
+                    title="Need a hint?"
+                  >
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Hint {hintLevel > 0 ? `(${hintLevel}/3)` : ''}</span>
+                  </button>
 
-                    if (isPlaced) {
-                      return (
-                        <div
-                          key={`queue-chip-${num}-${idx}`}
-                          id={`tray-element-${num}`}
-                          className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1.5 opacity-85 select-none"
-                          title={`Node ${num} has been placed`}
+                  <button
+                    id="game-guided-solve-btn"
+                    onClick={() => setShowGuidedSolve(!showGuidedSolve)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer shadow-2xs ${
+                      showGuidedSolve
+                        ? 'bg-indigo-600 text-white border-indigo-700'
+                        : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                    title="Toggle Guided Solve (Automatic step-by-step solver)"
+                  >
+                    <Compass className="w-3.5 h-3.5" />
+                    <span>{showGuidedSolve ? 'Stop Guided' : 'Guided Solve'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Hint Display Banner */}
+              <AnimatePresence>
+                {hintLevel > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2"
+                  >
+                    <Lightbulb className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-semibold">
+                        {hintLevel === 1 && `Hint Tier 1: ${challenge.hints.tier1}`}
+                        {hintLevel === 2 && `Hint Tier 2: ${challenge.hints.tier2}`}
+                        {hintLevel === 3 && `Hint Tier 3: ${challenge.hints.tier3}`}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Dedicated Pedagogical Guide / Teacher Panel (AVL Guardian Style) */}
+              <div className="mt-3">
+                {showGuidedSolve && currentGuidedStep ? (
+                  <div className="p-3.5 rounded-2xl border bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-600 text-white font-sans">
+                          Guided Step {guidedStepIndex + 1} of {activeGuidedSteps.length || 1}
+                        </span>
+                        <h4 className="text-xs font-bold text-indigo-950 dark:text-indigo-100">
+                          {currentGuidedStep.title}
+                        </h4>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          soundManager.playClick();
+                          setShowGuidedSolve(false);
+                          setGuidedStepIndex(0);
+                          setPlacementFeedback({
+                            type: 'info',
+                            message: 'Exited Guided Solve. Tree preserved — continue deleting nodes manually!',
+                          });
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 cursor-pointer font-bold"
+                        title="Turn off Guided Solve"
+                      >
+                        Turn Off Guided Solve
+                      </button>
+                    </div>
+
+                    <p className="text-xs leading-relaxed text-indigo-900 dark:text-indigo-200">
+                      {currentGuidedStep.actionDescription}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        onClick={handleGuidedSolvePrevStep}
+                        disabled={guidedStepIndex === 0}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                          guidedStepIndex === 0
+                            ? 'opacity-40 cursor-not-allowed bg-white/40 text-slate-400 border-slate-200'
+                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 hover:bg-slate-50 cursor-pointer'
+                        }`}
+                      >
+                        ← Prev Step
+                      </button>
+
+                      <button
+                        onClick={handleGuidedSolveNextStep}
+                        className="px-4 py-1.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>
+                          {(currentGuidedStep as any)?.buttonLabel || 'Next Step →'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                ) : placementFeedback ? (
+                  <div
+                    className={`p-3.5 rounded-2xl border shadow-2xs space-y-1 transition-all ${
+                      placementFeedback.type === 'error'
+                        ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60'
+                        : placementFeedback.type === 'success'
+                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60'
+                        : 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider font-sans text-white ${
+                            placementFeedback.type === 'error'
+                              ? 'bg-rose-600'
+                              : placementFeedback.type === 'success'
+                              ? 'bg-emerald-600'
+                              : 'bg-indigo-600'
+                          }`}
                         >
-                          <span>{num}</span>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        </div>
-                      );
-                    }
+                          {placementFeedback.type === 'error'
+                            ? 'Try Again'
+                            : placementFeedback.type === 'success'
+                            ? 'Deleted ✓'
+                            : 'Guide'}
+                        </span>
+                        <h4
+                          className={`text-xs font-bold ${
+                            placementFeedback.type === 'error'
+                              ? 'text-rose-950 dark:text-rose-100'
+                              : placementFeedback.type === 'success'
+                              ? 'text-emerald-950 dark:text-emerald-100'
+                              : 'text-indigo-950 dark:text-indigo-100'
+                          }`}
+                        >
+                          {placementFeedback.type === 'error'
+                            ? 'Incorrect Action'
+                            : placementFeedback.type === 'success'
+                            ? 'Stage Complete!'
+                            : 'BST Deletion Guide'}
+                        </h4>
+                      </div>
 
-                    if (isNextTarget) {
+                      {placementFeedback.pointsAwarded && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px]">
+                          +{placementFeedback.pointsAwarded} pts
+                        </span>
+                      )}
+                    </div>
+
+                    <p
+                      className={`text-xs leading-relaxed ${
+                        placementFeedback.type === 'error'
+                          ? 'text-rose-900 dark:text-rose-200'
+                          : placementFeedback.type === 'success'
+                          ? 'text-emerald-900 dark:text-emerald-200'
+                          : 'text-indigo-900 dark:text-indigo-200'
+                      }`}
+                    >
+                      {placementFeedback.message}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl border bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 shadow-2xs space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-700 text-white font-sans">
+                        Guide
+                      </span>
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        {currentLevel4Stage ? `Target: Delete Node ${currentLevel4Stage.targetNode}` : 'Level Completed!'}
+                      </h4>
+                    </div>
+                    <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      Drag target node {currentLevel4Stage?.targetNode} into the 🗑️ Dustbin below to execute deletion.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Interactive Tree SVG Canvas */}
+              <div className="relative mt-4">
+                <TreeCanvas
+                  root={currentTree}
+                  slots={[]}
+                  emptySlot={
+                    deletionPhase === 'replace_slot' && emptySlotInfo
+                      ? {
+                          id: emptySlotInfo.id,
+                          label: 'EMPTY',
+                          parentId: emptySlotInfo.parentId,
+                          direction: emptySlotInfo.direction,
+                          leftId: emptySlotInfo.leftId,
+                          rightId: emptySlotInfo.rightId,
+                        }
+                      : null
+                  }
+                  selectedDragValue={selectedDragNumber}
+                  selectedNodeId={selectedNodeForAction?.id}
+                  invalidSlotId={invalidSlotId}
+                  activeHoveredSlotId={hoveredDropSlotId}
+                  onSlotClick={() => {
+                    soundManager.playClick();
+                    if (deletionPhase === 'replace_slot') {
+                      setPlacementFeedback({
+                        type: 'info',
+                        message: 'Drag the replacement node from the tree into the [EMPTY] slot to place it (nodes must be dragged).',
+                      });
+                    }
+                  }}
+                  onSlotDrop={(slot, val, dropCoordinates) => {
+                    if (deletionPhase === 'replace_slot') {
+                      handleReplacementDrop(val, slot, dropCoordinates);
+                    }
+                  }}
+                  onNodeClick={handleNodeClick}
+                  onNodePointerDown={(e, node) => {
+                    handleLevel4NodePointerDown(e, node);
+                  }}
+                  onNodeDragStart={(node) => {
+                    setSelectedDragNumber(node.value);
+                  }}
+                  height={380}
+                  emptyMessage="Interactive BST Canvas"
+                />
+
+                {/* Feedback Toast Overlay */}
+                <AnimatePresence>
+                  {placementFeedback && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className={`absolute bottom-3 left-3 right-3 p-3 rounded-xl border shadow-lg text-xs flex items-center justify-between gap-2 z-20 ${
+                        placementFeedback.type === 'success'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/90 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-200'
+                          : placementFeedback.type === 'error'
+                          ? 'bg-rose-50 dark:bg-rose-950/90 border-rose-300 dark:border-rose-700 text-rose-950 dark:text-rose-200'
+                          : 'bg-indigo-50 dark:bg-indigo-950/90 border-indigo-300 dark:border-indigo-700 text-indigo-950 dark:text-indigo-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {placementFeedback.type === 'success' && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        )}
+                        {placementFeedback.type === 'error' && (
+                          <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                        )}
+                        {placementFeedback.type === 'info' && (
+                          <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                        )}
+                        <span className="font-medium">{placementFeedback.message}</span>
+                      </div>
+
+                      {placementFeedback.pointsAwarded && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] shrink-0">
+                          +{placementFeedback.pointsAwarded} pts
+                        </span>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Level 4: Replacement Candidates Tray (Draggable when replacement is required) */}
+              {deletionPhase === 'replace_slot' && emptySlotInfo && (
+                <div id="replacement-candidates-tray" className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Replacement Candidates (Drag & Drop into [EMPTY] vacancy)</span>
+                    </span>
+                    <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                      {deletionStageIndex === 1
+                        ? 'Drag child node 40 into the [EMPTY] slot'
+                        : 'Drag in-order successor 60 into the [EMPTY] slot'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 min-h-14">
+                    {(deletionStageIndex === 1 ? [40] : [40, 60, 70, 80]).map((num) => {
+                      const isSelected = selectedDragNumber === num;
                       return (
                         <motion.button
-                          key={`queue-chip-${num}-${idx}`}
+                          key={`repl-${num}`}
                           id={`tray-element-${num}`}
                           layout
                           draggable
                           onDragStart={(e: any) => handleChipDragStart(e, num)}
                           onDragEnd={handleChipDragEnd}
                           onPointerDown={(e: any) => handleChipPointerDown(e, num)}
-                          className={`relative px-4 py-2 rounded-xl font-mono text-sm font-black transition-all flex items-center gap-2 cursor-grab active:cursor-grabbing select-none shadow-md ${
+                          className={`relative px-4 py-2 rounded-xl font-mono text-sm font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-grab active:cursor-grabbing ${
                             isSelected
-                              ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 scale-105'
-                              : 'bg-indigo-600 text-white ring-2 ring-indigo-300 dark:ring-indigo-700 hover:scale-105'
+                              ? 'bg-amber-600 text-white ring-2 ring-amber-400 scale-105 shadow-md'
+                              : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-amber-300 dark:border-amber-700 hover:border-amber-500 hover:scale-105'
                           }`}
-                          title={`Drag node ${num} into the tree`}
                         >
                           <span>{num}</span>
-                          <span className="text-[9px] uppercase tracking-wider bg-white/20 text-white px-1.5 py-0.5 rounded font-sans font-bold">
-                            Drag
-                          </span>
+                          {num === emptySlotInfo.expectedReplacement && (
+                            <span className="text-[9px] uppercase tracking-wider bg-amber-600 text-white px-1.5 py-0.2 rounded font-sans">
+                              Candidate
+                            </span>
+                          )}
                         </motion.button>
                       );
-                    }
-
-                    return (
-                      <div
-                        key={`queue-chip-${num}-${idx}`}
-                        id={`tray-element-${num}`}
-                        className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-semibold bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center gap-1.5 opacity-70 select-none cursor-not-allowed"
-                        title={`Node ${num} is queued after node ${remainingTrayNumbers[0]}`}
-                      >
-                        <span>{num}</span>
-                        <span className="text-[9px] uppercase tracking-wider text-slate-400">Wait</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Dedicated Pedagogical Guide / Teacher Panel (AVL Guardian Style) */}
-            <div className="mt-3">
-              {showGuidedSolve && currentGuidedStep ? (
-                <div className="p-3.5 rounded-2xl border bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60 shadow-2xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-600 text-white font-sans">
-                        Guided Step {guidedStepIndex + 1} of {activeGuidedSteps.length || 1}
-                      </span>
-                      <h4 className="text-xs font-bold text-indigo-950 dark:text-indigo-100">
-                        {currentGuidedStep.title}
-                      </h4>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        soundManager.playClick();
-                        setShowGuidedSolve(false);
-                        setGuidedStepIndex(0);
-                        setPlacementFeedback({
-                          type: 'info',
-                          message: 'Exited Guided Solve. Tree preserved — continue inserting nodes manually!',
-                        });
-                      }}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 cursor-pointer font-bold"
-                      title="Turn off Guided Solve"
-                    >
-                      Turn Off Guided Solve
-                    </button>
+                    })}
                   </div>
-
-                  <p className="text-xs leading-relaxed text-indigo-900 dark:text-indigo-200">
-                    {currentGuidedStep.actionDescription}
-                  </p>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      onClick={handleGuidedSolvePrevStep}
-                      disabled={guidedStepIndex === 0}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                        guidedStepIndex === 0
-                          ? 'opacity-40 cursor-not-allowed bg-white/40 text-slate-400 border-slate-200'
-                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 hover:bg-slate-50 cursor-pointer'
-                      }`}
-                    >
-                      ← Prev Step
-                    </button>
-
-                    <button
-                      onClick={handleGuidedSolveNextStep}
-                      className="px-4 py-1.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>
-                        {'isInsertAction' in currentGuidedStep && (currentGuidedStep as DynamicGuidedStep).isInsertAction
-                          ? `Insert Node ${(currentGuidedStep as DynamicGuidedStep).valueToInsert} →`
-                          : 'Next Step →'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              ) : placementFeedback ? (
-                <div
-                  className={`p-3.5 rounded-2xl border shadow-2xs space-y-1 transition-all ${
-                    placementFeedback.type === 'error'
-                      ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60'
-                      : placementFeedback.type === 'success'
-                      ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60'
-                      : 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider font-sans text-white ${
-                          placementFeedback.type === 'error'
-                            ? 'bg-rose-600'
-                            : placementFeedback.type === 'success'
-                            ? 'bg-emerald-600'
-                            : 'bg-indigo-600'
-                        }`}
-                      >
-                        {placementFeedback.type === 'error'
-                          ? 'Try Again'
-                          : placementFeedback.type === 'success'
-                          ? 'Placed ✓'
-                          : 'Guide'}
-                      </span>
-                      <h4
-                        className={`text-xs font-bold ${
-                          placementFeedback.type === 'error'
-                            ? 'text-rose-950 dark:text-rose-100'
-                            : placementFeedback.type === 'success'
-                            ? 'text-emerald-950 dark:text-emerald-100'
-                            : 'text-indigo-950 dark:text-indigo-100'
-                        }`}
-                      >
-                        {placementFeedback.type === 'error'
-                          ? 'Incorrect Position'
-                          : placementFeedback.type === 'success'
-                          ? 'Correct Placement!'
-                          : 'BST Comparison Guide'}
-                      </h4>
-                    </div>
-
-                    {placementFeedback.pointsAwarded && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px]">
-                        +{placementFeedback.pointsAwarded} pts
-                      </span>
-                    )}
-                  </div>
-
-                  <p
-                    className={`text-xs leading-relaxed ${
-                      placementFeedback.type === 'error'
-                        ? 'text-rose-900 dark:text-rose-200'
-                        : placementFeedback.type === 'success'
-                        ? 'text-emerald-900 dark:text-emerald-200'
-                        : 'text-indigo-900 dark:text-indigo-200'
-                    }`}
-                  >
-                    {placementFeedback.message}
-                  </p>
-                </div>
-              ) : (
-                <div className="p-3.5 rounded-2xl border bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 shadow-2xs space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-700 text-white font-sans">
-                      Guide
-                    </span>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {nextNumberToInsert !== null
-                        ? `Ready to insert node ${nextNumberToInsert}`
-                        : 'Level Completed!'}
-                    </h4>
-                  </div>
-                  <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                    {challenge.level <= 3
-                      ? `Drag active node chip ${nextNumberToInsert} from the queue above onto the correct empty slot in the tree. Follow BST comparison: smaller values go LEFT, larger values go RIGHT.`
-                      : challenge.level === 4
-                      ? `Drag target node ${currentLevel4Stage?.targetNode} into the 🗑️ Dustbin below to execute deletion.`
-                      : `Click nodes on the tree in exact ${activeTraversalType.toUpperCase()} order, then click Submit Answer.`}
-                  </p>
                 </div>
               )}
             </div>
-
-            {/* Interactive Tree SVG Canvas */}
-            <div className="relative mt-4">
-              <TreeCanvas
-                root={currentTree}
-                slots={challenge.level === 4 || challenge.level === 5 ? [] : availableDropSlots}
-                emptySlot={
-                  challenge.level === 4 && deletionPhase === 'replace_slot' && emptySlotInfo
-                    ? {
-                        id: emptySlotInfo.id,
-                        label: 'EMPTY',
-                        parentId: emptySlotInfo.parentId,
-                        direction: emptySlotInfo.direction,
-                        leftId: emptySlotInfo.leftId,
-                        rightId: emptySlotInfo.rightId,
-                      }
-                    : null
-                }
-                selectedDragValue={selectedDragNumber}
-                selectedNodeId={
-                  challenge.level === 5
-                    ? null
-                    : selectedNodeForAction?.id
-                }
-                highlightedNodeIds={
-                  challenge.level === 5
-                    ? selectedTraversalNodes.map((v) => `node-${v}`)
-                    : []
-                }
-                highlightedValues={
-                  challenge.level === 5
-                    ? selectedTraversalNodes
-                    : []
-                }
-                invalidSlotId={invalidSlotId}
-                activeHoveredSlotId={hoveredDropSlotId}
-                comparingNodeId={
-                  showGuidedSolve && currentGuidedStep && 'comparingNodeId' in currentGuidedStep
-                    ? (currentGuidedStep as DynamicGuidedStep).comparingNodeId
-                    : null
-                }
-                guidedCorrectSlotId={
-                  showGuidedSolve && currentGuidedStep && 'guidedSlotId' in currentGuidedStep
-                    ? (currentGuidedStep as DynamicGuidedStep).guidedSlotId
-                    : null
-                }
-                comparisonBanner={
-                  showGuidedSolve && currentGuidedStep && 'banner' in currentGuidedStep
-                    ? (currentGuidedStep as DynamicGuidedStep).banner
-                    : undefined
-                }
-                onSlotClick={(slot) => {
-                  soundManager.playClick();
-                  if (challenge.level === 4 && deletionPhase === 'replace_slot') {
-                    setPlacementFeedback({
-                      type: 'info',
-                      message: 'Drag the replacement node from the tree into the [EMPTY] slot to place it (nodes must be dragged).',
-                    });
-                  } else {
-                    setPlacementFeedback({
-                      type: 'info',
-                      message: selectedDragNumber !== null
-                        ? `Drag node ${selectedDragNumber} and drop it directly onto this target slot to place it!`
-                        : 'Drag the active node chip from the queue and drop it directly onto this target slot to place it!',
-                    });
-                  }
-                }}
-                onSlotDrop={(slot, val, dropCoordinates) => {
-                  if (challenge.level === 4 && deletionPhase === 'replace_slot') {
-                    handleReplacementDrop(val, slot, dropCoordinates);
-                  } else {
-                    handleSlotDropOrClick(slot, val, dropCoordinates);
-                  }
-                }}
-                onNodeClick={handleNodeClick}
-                onNodePointerDown={(e, node) => {
-                  if (challenge.level === 4) {
-                    handleLevel4NodePointerDown(e, node);
-                  }
-                }}
-                onNodeDragStart={(node) => {
-                  if (challenge.level === 4) {
-                    setSelectedDragNumber(node.value);
-                  }
-                }}
-                height={380}
-                emptyMessage={
-                  challenge.category === 'build_tree'
-                    ? 'Tree is currently empty. Drag the first number (Root) from the queue above into the central root slot.'
-                    : 'Interactive BST Canvas'
-                }
-              />
-
-              {/* Feedback Toast Overlay */}
-              <AnimatePresence>
-                {placementFeedback && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className={`absolute bottom-3 left-3 right-3 p-3 rounded-xl border shadow-lg text-xs flex items-center justify-between gap-2 z-20 ${
-                      placementFeedback.type === 'success'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/90 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-200'
-                        : placementFeedback.type === 'error'
-                        ? 'bg-rose-50 dark:bg-rose-950/90 border-rose-300 dark:border-rose-700 text-rose-950 dark:text-rose-200'
-                        : 'bg-indigo-50 dark:bg-indigo-950/90 border-indigo-300 dark:border-indigo-700 text-indigo-950 dark:text-indigo-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {placementFeedback.type === 'success' && (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      )}
-                      {placementFeedback.type === 'error' && (
-                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                      )}
-                      {placementFeedback.type === 'info' && (
-                        <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                      )}
-                      <span className="font-medium">{placementFeedback.message}</span>
-                    </div>
-
-                    {placementFeedback.pointsAwarded && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] shrink-0">
-                        +{placementFeedback.pointsAwarded} pts
-                      </span>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Level 4: Replacement Candidates Tray (Draggable when replacement is required) */}
-            {challenge.level === 4 && deletionPhase === 'replace_slot' && emptySlotInfo && (
-              <div id="replacement-candidates-tray" className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Replacement Candidates (Drag & Drop into [EMPTY] vacancy)</span>
-                  </span>
-                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                    {deletionStageIndex === 1
-                      ? 'Drag child node 40 into the [EMPTY] slot'
-                      : 'Drag in-order successor 60 into the [EMPTY] slot'}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 min-h-14">
-                  {(deletionStageIndex === 1 ? [40] : [40, 60, 70, 80]).map((num) => {
-                    const isSelected = selectedDragNumber === num;
-                    return (
-                      <motion.button
-                        key={`repl-${num}`}
-                        id={`tray-element-${num}`}
-                        layout
-                        draggable
-                        onDragStart={(e: any) => handleChipDragStart(e, num)}
-                        onDragEnd={handleChipDragEnd}
-                        onPointerDown={(e: any) => handleChipPointerDown(e, num)}
-                        className={`relative px-4 py-2 rounded-xl font-mono text-sm font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-grab active:cursor-grabbing ${
-                          isSelected
-                            ? 'bg-amber-600 text-white ring-2 ring-amber-400 scale-105 shadow-md'
-                            : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-amber-300 dark:border-amber-700 hover:border-amber-500 hover:scale-105'
-                        }`}
-                      >
-                        <span>{num}</span>
-                        {num === emptySlotInfo.expectedReplacement && (
-                          <span className="text-[9px] uppercase tracking-wider bg-amber-600 text-white px-1.5 py-0.2 rounded font-sans">
-                            Candidate
-                          </span>
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            {challenge.level === 5 && (
-              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <ListOrdered className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>
-                      {activeTraversalType.toUpperCase()} Selection ({selectedTraversalNodes.length}/7 Selected)
-                    </span>
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Click nodes in order, then click Submit
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 min-h-14">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Your Order:</span>
-                    {selectedTraversalNodes.length === 0 && (
-                      <span className="text-xs text-slate-400 italic">
-                        Click the tree nodes above in {activeTraversalType.toUpperCase()} order to record your sequence.
-                      </span>
-                    )}
-                  </div>
-                  {selectedTraversalNodes.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      {selectedTraversalNodes.map((val, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5">
-                          <span
-                            className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-mono text-xs font-bold shadow-xs animate-in fade-in zoom-in-90 flex items-center gap-1"
-                          >
-                            <span className="text-[10px] text-indigo-200">#{idx + 1}</span>
-                            <span>{val}</span>
-                          </span>
-                          {idx < selectedTraversalNodes.length - 1 && (
-                            <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400">→</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Traversal Action Buttons (Submit Answer & Reset Selection) */}
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    id="submit-traversal-answer-btn"
-                    onClick={handleSubmitTraversal}
-                    disabled={selectedTraversalNodes.length === 0}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Submit Answer</span>
-                  </button>
-
-                  <button
-                    id="reset-traversal-selection-btn"
-                    onClick={handleResetTraversalSelection}
-                    className="py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-98 shadow-xs"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Reset Selection</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* Right Column: Mission Objectives, Deletion Dustbin Zone & Step Guides (4 cols on desktop) */}
-        <div className="lg:col-span-4 space-y-4">
-          {/* 🗑️ DUSTBIN / DELETE DROP ZONE (Active for Level 4) */}
-          {challenge.level === 4 && (
+          {/* Right Column: Mission Objectives, Deletion Dustbin Zone & Step Guides (4 cols on desktop) */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* 🗑️ DUSTBIN / DELETE DROP ZONE */}
             <div
               id="game-dustbin-dropzone"
               onDragOver={handleDustbinDragOver}
@@ -2351,68 +2096,289 @@ const GamePageContent: React.FC = () => {
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Level 4: 3-Stage Progress Indicator */}
-          {challenge.level === 4 && challenge.deletionStages && (
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  Deletion Mastery Stages (3 Cases)
-                </span>
-                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                  {deletionStageIndex + 1}/3
-                </span>
-              </div>
+            {/* Level 4: 3-Stage Progress Indicator */}
+            {challenge.deletionStages && (
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    Deletion Mastery Stages (3 Cases)
+                  </span>
+                  <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                    {deletionStageIndex + 1}/3
+                  </span>
+                </div>
 
-              <div className="space-y-2">
-                {challenge.deletionStages.map((stage, idx) => {
-                  const isDone = idx < deletionStageIndex;
-                  const isCurrent = idx === deletionStageIndex;
+                <div className="space-y-2">
+                  {challenge.deletionStages.map((stage, idx) => {
+                    const isDone = idx < deletionStageIndex;
+                    const isCurrent = idx === deletionStageIndex;
 
-                  return (
-                    <div
-                      key={stage.caseType}
-                      className={`p-3 rounded-xl border text-xs transition-all ${
-                        isDone
-                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200'
-                          : isCurrent
-                          ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-700 text-indigo-950 dark:text-indigo-200 shadow-2xs font-semibold'
-                          : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold">{stage.caseType}</span>
-                        {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
-                        {isCurrent && (
-                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-indigo-600 text-white font-mono">
-                            Active
-                          </span>
-                        )}
+                    return (
+                      <div
+                        key={stage.caseType}
+                        className={`p-3 rounded-xl border text-xs transition-all ${
+                          isDone
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200'
+                            : isCurrent
+                            ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-700 text-indigo-950 dark:text-indigo-200 shadow-2xs font-semibold'
+                            : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold">{stage.caseType}</span>
+                          {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
+                          {isCurrent && (
+                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-indigo-600 text-white font-mono">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+                          {stage.explanation}
+                        </p>
                       </div>
-                      <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
-                        {stage.explanation}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Guided Solve Step Walkthrough (Toggleable) */}
+            <AnimatePresence>
+              {showGuidedSolve && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-indigo-200 dark:border-slate-800 shadow-sm space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                      <Compass className="w-4 h-4 text-indigo-600" />
+                      <span>Guided Solve Mode</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-slate-500">
+                        Step {guidedStepIndex + 1} of {activeGuidedSteps.length || 1}
+                      </span>
+                      <button
+                        onClick={() => {
+                          soundManager.playClick();
+                          setShowGuidedSolve(false);
+                          setGuidedStepIndex(0);
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 cursor-pointer font-medium"
+                        title="Exit Guided Solve"
+                      >
+                        Exit
+                      </button>
+                    </div>
+                  </div>
+
+                  {currentGuidedStep && (
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
+                      <h5 className="font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span>{currentGuidedStep.title}</span>
+                      </h5>
+                      <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {currentGuidedStep.actionDescription}
                       </p>
                     </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      id="guided-solve-prev-btn"
+                      disabled={guidedStepIndex === 0}
+                      onClick={handleGuidedSolvePrevStep}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 cursor-pointer transition-colors hover:bg-slate-200 dark:hover:bg-slate-700"
+                    >
+                      ← Prev
+                    </button>
+                    <button
+                      id="guided-solve-next-btn"
+                      onClick={handleGuidedSolveNextStep}
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs active:scale-95 transition-all flex items-center gap-1.5"
+                    >
+                      <span>
+                        {(currentGuidedStep as any)?.buttonLabel || (guidedStepIndex >= activeGuidedSteps.length - 1 ? 'Complete Solve (Auto) ✓' : 'Next Step (Auto) →')}
+                      </span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Level Complete Trophy Modal Card */}
+            <AnimatePresence>
+              {isChallengeComplete && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 p-5 rounded-2xl shadow-md space-y-4 text-center"
+                >
+                  <div className="w-12 h-12 mx-auto rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg">
+                    <Trophy className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black text-emerald-950 dark:text-emerald-100">
+                      Level {challenge.level} Mastered!
+                    </h4>
+                    <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-1">
+                      Score: {currentTotalScore}/{maxPossibleScore} pts • Accuracy: {accuracyPercent}% • +{challenge.xp} XP earned!
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => resetChallenge(challenge)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Replay
+                    </button>
+                    {activeChallengeIndex < GAME_CHALLENGES.length - 1 && (
+                      <button
+                        onClick={() => {
+                          soundManager.playClick();
+                          setActiveChallengeIndex((prev) => prev + 1);
+                        }}
+                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <span>Next Level</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      ) : (
+        /* LEVELS 1, 2, 3, AND 5: SPACIOUS, LARGER GAMEPLAY/MISSION BOX LAYOUT */
+        <div className="w-full bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 p-6 sm:p-8 space-y-6 relative transition-colors">
+          {/* Header Bar: Mission Title, Objective & Action Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 px-2.5 py-1 rounded-lg border border-indigo-200/80 dark:border-indigo-800/80">
+                  {challenge.level === 1 && 'Level 1 Mission: Basic BST Formation'}
+                  {challenge.level === 2 && 'Level 2 Mission: BST Insertion Challenge'}
+                  {challenge.level === 3 && 'Level 3 Mission: Advanced BST Formation (11 Nodes)'}
+                  {challenge.level === 5 && `Level 5 Mission: BST Traversals (${activeTraversalType.toUpperCase()})`}
+                </span>
+              </div>
+              <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                {challenge.level === 1 && 'Drag numbers from the tray below and place each node using Left < Root < Right.'}
+                {challenge.level === 2 && (
+                  <span>
+                    👉 Current Target: Insert <strong className="text-indigo-600 dark:text-indigo-400 font-mono text-base font-bold">{currentLevel2Target}</strong> into the BST. Follow comparison rules from Root 50.
+                  </span>
+                )}
+                {challenge.level === 3 && 'Place each node from the sequence to build the multi-tier zigzag BST.'}
+                {challenge.level === 5 && (
+                  <span>
+                    👉 Click the nodes on the tree in exact <strong>{activeTraversalType.toUpperCase()}</strong> order (
+                    {activeTraversalType === 'inorder' && 'Left → Root → Right'}
+                    {activeTraversalType === 'preorder' && 'Root → Left → Right'}
+                    {activeTraversalType === 'postorder' && 'Left → Right → Root'}
+                    ).
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Action Buttons: Hint, Guided Solve, Undo */}
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <button
+                id="game-hint-btn"
+                onClick={handleUseHint}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-2xs"
+                title="Need a hint?"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <span>Hint {hintLevel > 0 ? `(${hintLevel}/3)` : ''}</span>
+              </button>
+
+              <button
+                id="game-guided-solve-btn"
+                onClick={() => setShowGuidedSolve(!showGuidedSolve)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer shadow-2xs ${
+                  showGuidedSolve
+                    ? 'bg-indigo-600 text-white border-indigo-700'
+                    : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                }`}
+                title="Toggle Guided Solve (Automatic step-by-step solver)"
+              >
+                <Compass className="w-4 h-4" />
+                <span>{showGuidedSolve ? 'Stop Guided' : 'Guided Solve'}</span>
+              </button>
+
+              {undoStack.length > 0 && !isChallengeComplete && (
+                <button
+                  onClick={handleUndo}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-2xs"
+                  title="Undo last node insertion"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Undo</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Hint Display Banner */}
+          <AnimatePresence>
+            {hintLevel > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-xs sm:text-sm">
+                    {hintLevel === 1 && `Hint Tier 1: ${challenge.hints.tier1}`}
+                    {hintLevel === 2 && `Hint Tier 2: ${challenge.hints.tier2}`}
+                    {hintLevel === 3 && `Hint Tier 3: ${challenge.hints.tier3}`}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Level 5 Traversal Mode Selector Tabs & Rules Cards */}
+          {challenge.level === 5 && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {(['inorder', 'preorder', 'postorder'] as TraversalType[]).map((tType) => {
+                  const isActive = activeTraversalType === tType;
+                  const isDone = completedTraversals[tType];
+
+                  return (
+                    <button
+                      key={tType}
+                      id={`game-traversal-tab-${tType}`}
+                      onClick={() => handleSwitchTraversal(tType)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs ${
+                        isActive
+                          ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 shadow-md'
+                          : isDone
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>{tType.charAt(0).toUpperCase() + tType.slice(1)}</span>
+                      {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                    </button>
                   );
                 })}
               </div>
-            </div>
-          )}
 
-          {/* Level 5: 3 Traversal Modes Overview */}
-          {challenge.level === 5 && (
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  BST Traversal Rules
-                </span>
-                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                  {Object.values(completedTraversals).filter(Boolean).length}/3 Done
-                </span>
-              </div>
-
-              <div className="space-y-2">
+              {/* 3 Traversal Rules Cards in a responsive 3-col grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {[
                   {
                     type: 'inorder',
@@ -2437,7 +2403,7 @@ const GamePageContent: React.FC = () => {
                     <div
                       key={item.type}
                       onClick={() => handleSwitchTraversal(item.type as TraversalType)}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
                         isDone
                           ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200'
                           : isCurrent
@@ -2463,109 +2429,410 @@ const GamePageContent: React.FC = () => {
             </div>
           )}
 
-          {/* Guided Solve Step Walkthrough (Toggleable) */}
-          <AnimatePresence>
-            {showGuidedSolve && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-indigo-200 dark:border-slate-800 shadow-sm space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-200">
-                    <Compass className="w-4 h-4 text-indigo-600" />
-                    <span>Guided Solve Mode</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-slate-500">
-                      Step {guidedStepIndex + 1} of {activeGuidedSteps.length || 1}
+          {/* Top Queue Tray: Element Queue for Levels 1, 2, 3 */}
+          {(challenge.numbersToInsert || []).length > 0 && (
+            <div id="elements-top-tray" className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-indigo-500" />
+                    <span>Queue ({challenge.numbersToInsert?.length || 0} total)</span>
+                  </span>
+                  <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                    Step {challenge.numbersToInsert ? challenge.numbersToInsert.length - remainingTrayNumbers.length + 1 : 1} of {totalStepsInChallenge}
+                  </span>
+                </div>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {nextNumberToInsert !== null ? (
+                    <span>Next to insert: <strong className="font-mono text-indigo-600 dark:text-indigo-400 font-bold text-sm">{nextNumberToInsert}</strong></span>
+                  ) : (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 inline" /> All Placed!
                     </span>
-                    <button
-                      onClick={() => {
-                        soundManager.playClick();
-                        setShowGuidedSolve(false);
-                        setGuidedStepIndex(0);
-                      }}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 cursor-pointer font-medium"
-                      title="Exit Guided Solve"
+                  )}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 min-h-12">
+                {challenge.numbersToInsert?.map((num, idx) => {
+                  const isPlaced = !remainingTrayNumbers.includes(num);
+                  const isNextTarget = remainingTrayNumbers[0] === num;
+                  const isSelected = selectedDragNumber === num;
+
+                  if (isPlaced) {
+                    return (
+                      <div
+                        key={`queue-chip-${num}-${idx}`}
+                        id={`tray-element-${num}`}
+                        className="px-4 py-2 rounded-xl font-mono text-xs sm:text-sm font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-2 opacity-85 select-none"
+                        title={`Node ${num} has been placed`}
+                      >
+                        <span>{num}</span>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      </div>
+                    );
+                  }
+
+                  if (isNextTarget) {
+                    return (
+                      <motion.button
+                        key={`queue-chip-${num}-${idx}`}
+                        id={`tray-element-${num}`}
+                        layout
+                        draggable
+                        onDragStart={(e: any) => handleChipDragStart(e, num)}
+                        onDragEnd={handleChipDragEnd}
+                        onPointerDown={(e: any) => handleChipPointerDown(e, num)}
+                        className={`relative px-5 py-2.5 rounded-xl font-mono text-sm sm:text-base font-black transition-all flex items-center gap-2.5 cursor-grab active:cursor-grabbing select-none shadow-md ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 scale-105'
+                            : 'bg-indigo-600 text-white ring-2 ring-indigo-300 dark:ring-indigo-700 hover:scale-105'
+                        }`}
+                        title={`Drag node ${num} into the tree`}
+                      >
+                        <span>{num}</span>
+                        <span className="text-[10px] uppercase tracking-wider bg-white/20 text-white px-2 py-0.5 rounded font-sans font-bold">
+                          Drag
+                        </span>
+                      </motion.button>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={`queue-chip-${num}-${idx}`}
+                      id={`tray-element-${num}`}
+                      className="px-4 py-2 rounded-xl font-mono text-xs sm:text-sm font-semibold bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center gap-2 opacity-70 select-none cursor-not-allowed"
+                      title={`Node ${num} is queued after node ${remainingTrayNumbers[0]}`}
                     >
-                      Exit
-                    </button>
+                      <span>{num}</span>
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400">Wait</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Teacher Guide / Feedback / Guided Solve Panel */}
+          <div>
+            {showGuidedSolve && currentGuidedStep ? (
+              <div className="p-4 sm:p-5 rounded-2xl border bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-600 text-white font-sans">
+                      Guided Step {guidedStepIndex + 1} of {activeGuidedSteps.length || 1}
+                    </span>
+                    <h4 className="text-xs sm:text-sm font-bold text-indigo-950 dark:text-indigo-100">
+                      {currentGuidedStep.title}
+                    </h4>
                   </div>
+
+                  <button
+                    onClick={() => {
+                      soundManager.playClick();
+                      setShowGuidedSolve(false);
+                      setGuidedStepIndex(0);
+                      setPlacementFeedback({
+                        type: 'info',
+                        message: 'Exited Guided Solve. Tree preserved — continue inserting nodes manually!',
+                      });
+                    }}
+                    className="text-[11px] px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 cursor-pointer font-bold"
+                    title="Turn off Guided Solve"
+                  >
+                    Turn Off Guided Solve
+                  </button>
                 </div>
 
-                {currentGuidedStep && (
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
-                    <h5 className="font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
-                      <span>{currentGuidedStep.title}</span>
-                      {('guidedSlotId' in currentGuidedStep && (currentGuidedStep as DynamicGuidedStep).guidedSlotId) && (
-                        <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded font-sans font-semibold">
-                          Target Found ✓
-                        </span>
-                      )}
-                    </h5>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {currentGuidedStep.actionDescription}
-                    </p>
-                  </div>
-                )}
+                <p className="text-xs sm:text-sm leading-relaxed text-indigo-900 dark:text-indigo-200">
+                  {currentGuidedStep.actionDescription}
+                </p>
 
                 <div className="flex items-center justify-between pt-1">
                   <button
-                    id="guided-solve-prev-btn"
-                    disabled={guidedStepIndex === 0}
                     onClick={handleGuidedSolvePrevStep}
-                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 cursor-pointer transition-colors hover:bg-slate-200 dark:hover:bg-slate-700"
+                    disabled={guidedStepIndex === 0}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                      guidedStepIndex === 0
+                        ? 'opacity-40 cursor-not-allowed bg-white/40 text-slate-400 border-slate-200'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 hover:bg-slate-50 cursor-pointer'
+                    }`}
                   >
-                    ← Prev
+                    ← Prev Step
                   </button>
+
                   <button
-                    id="guided-solve-next-btn"
                     onClick={handleGuidedSolveNextStep}
-                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs active:scale-95 transition-all flex items-center gap-1.5"
+                    className="px-4 py-1.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>
-                      {challenge.level <= 3
-                        ? (currentGuidedStep as DynamicGuidedStep)?.isInsertAction
-                          ? `Insert Node ${(currentGuidedStep as DynamicGuidedStep)?.valueToInsert} →`
-                          : 'Next Step →'
-                        : challenge.level === 4 && (currentGuidedStep as any)?.buttonLabel
-                        ? (currentGuidedStep as any).buttonLabel
-                        : guidedStepIndex >= activeGuidedSteps.length - 1
-                        ? 'Complete Solve (Auto) ✓'
-                        : 'Next Step (Auto) →'}
+                      {'isInsertAction' in currentGuidedStep && (currentGuidedStep as DynamicGuidedStep).isInsertAction
+                        ? `Insert Node ${(currentGuidedStep as DynamicGuidedStep).valueToInsert} →`
+                        : 'Next Step →'}
                     </span>
                   </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            ) : placementFeedback ? (
+              <div
+                className={`p-4 rounded-2xl border shadow-2xs space-y-1.5 transition-all ${
+                  placementFeedback.type === 'error'
+                    ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60'
+                    : placementFeedback.type === 'success'
+                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60'
+                    : 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider font-sans text-white ${
+                        placementFeedback.type === 'error'
+                          ? 'bg-rose-600'
+                          : placementFeedback.type === 'success'
+                          ? 'bg-emerald-600'
+                          : 'bg-indigo-600'
+                      }`}
+                    >
+                      {placementFeedback.type === 'error'
+                        ? 'Try Again'
+                        : placementFeedback.type === 'success'
+                        ? 'Placed ✓'
+                        : 'Guide'}
+                    </span>
+                    <h4
+                      className={`text-xs sm:text-sm font-bold ${
+                        placementFeedback.type === 'error'
+                          ? 'text-rose-950 dark:text-rose-100'
+                          : placementFeedback.type === 'success'
+                          ? 'text-emerald-950 dark:text-emerald-100'
+                          : 'text-indigo-950 dark:text-indigo-100'
+                      }`}
+                    >
+                      {placementFeedback.type === 'error'
+                        ? 'Incorrect Position'
+                        : placementFeedback.type === 'success'
+                        ? 'Correct Placement!'
+                        : 'BST Comparison Guide'}
+                    </h4>
+                  </div>
 
-          {/* Level Complete Trophy Modal Card */}
+                  {placementFeedback.pointsAwarded && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-xs">
+                      +{placementFeedback.pointsAwarded} pts
+                    </span>
+                  )}
+                </div>
+
+                <p
+                  className={`text-xs sm:text-sm leading-relaxed ${
+                    placementFeedback.type === 'error'
+                      ? 'text-rose-900 dark:text-rose-200'
+                      : placementFeedback.type === 'success'
+                      ? 'text-emerald-900 dark:text-emerald-200'
+                      : 'text-indigo-900 dark:text-indigo-200'
+                  }`}
+                >
+                  {placementFeedback.message}
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl border bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 shadow-2xs space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-700 text-white font-sans">
+                    Guide
+                  </span>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                    {nextNumberToInsert !== null
+                      ? `Ready to insert node ${nextNumberToInsert}`
+                      : 'Level Completed!'}
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                  {challenge.level <= 3
+                    ? `Drag active node chip ${nextNumberToInsert} from the queue above onto the correct empty slot in the tree. Follow BST comparison: smaller values go LEFT, larger values go RIGHT.`
+                    : `Click nodes on the tree in exact ${activeTraversalType.toUpperCase()} order, then click Submit Answer.`}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Spacious Interactive Tree SVG Canvas Workspace */}
+          <div className="relative rounded-2xl bg-slate-50/40 dark:bg-slate-950/30 border border-slate-200/70 dark:border-slate-800/70 p-3 sm:p-5 overflow-x-auto">
+            <TreeCanvas
+              root={currentTree}
+              slots={challenge.level === 5 ? [] : availableDropSlots}
+              selectedDragValue={selectedDragNumber}
+              selectedNodeId={challenge.level === 5 ? null : selectedNodeForAction?.id}
+              highlightedNodeIds={challenge.level === 5 ? selectedTraversalNodes.map((v) => `node-${v}`) : []}
+              highlightedValues={challenge.level === 5 ? selectedTraversalNodes : []}
+              invalidSlotId={invalidSlotId}
+              activeHoveredSlotId={hoveredDropSlotId}
+              comparingNodeId={
+                showGuidedSolve && currentGuidedStep && 'comparingNodeId' in currentGuidedStep
+                  ? (currentGuidedStep as DynamicGuidedStep).comparingNodeId
+                  : null
+              }
+              guidedCorrectSlotId={
+                showGuidedSolve && currentGuidedStep && 'guidedSlotId' in currentGuidedStep
+                  ? (currentGuidedStep as DynamicGuidedStep).guidedSlotId
+                  : null
+              }
+              comparisonBanner={
+                showGuidedSolve && currentGuidedStep && 'banner' in currentGuidedStep
+                  ? (currentGuidedStep as DynamicGuidedStep).banner
+                  : undefined
+              }
+              onSlotClick={(slot) => {
+                soundManager.playClick();
+                setPlacementFeedback({
+                  type: 'info',
+                  message: selectedDragNumber !== null
+                    ? `Drag node ${selectedDragNumber} and drop it directly onto this target slot to place it!`
+                    : 'Drag the active node chip from the queue and drop it directly onto this target slot to place it!',
+                });
+              }}
+              onSlotDrop={(slot, val, dropCoordinates) => {
+                handleSlotDropOrClick(slot, val, dropCoordinates);
+              }}
+              onNodeClick={handleNodeClick}
+              width={challenge.level === 3 ? 920 : 860}
+              height={challenge.level === 3 ? 460 : 430}
+              emptyMessage={
+                challenge.category === 'build_tree'
+                  ? 'Tree is currently empty. Drag the first number (Root) from the queue above into the central root slot.'
+                  : 'Interactive BST Canvas'
+              }
+            />
+
+            {/* Feedback Toast Overlay */}
+            <AnimatePresence>
+              {placementFeedback && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  className={`absolute bottom-4 left-4 right-4 p-3.5 rounded-xl border shadow-lg text-xs sm:text-sm flex items-center justify-between gap-2 z-20 ${
+                    placementFeedback.type === 'success'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/90 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-200'
+                      : placementFeedback.type === 'error'
+                      ? 'bg-rose-50 dark:bg-rose-950/90 border-rose-300 dark:border-rose-700 text-rose-950 dark:text-rose-200'
+                      : 'bg-indigo-50 dark:bg-indigo-950/90 border-indigo-300 dark:border-indigo-700 text-indigo-950 dark:text-indigo-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {placementFeedback.type === 'success' && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    )}
+                    {placementFeedback.type === 'error' && (
+                      <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                    )}
+                    {placementFeedback.type === 'info' && (
+                      <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    )}
+                    <span className="font-medium">{placementFeedback.message}</span>
+                  </div>
+
+                  {placementFeedback.pointsAwarded && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-xs shrink-0">
+                      +{placementFeedback.pointsAwarded} pts
+                    </span>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Level 5: Traversal Order & Submit Controls */}
+          {challenge.level === 5 && (
+            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <ListOrdered className="w-4 h-4 text-indigo-500" />
+                  <span>
+                    {activeTraversalType.toUpperCase()} Selection ({selectedTraversalNodes.length}/7 Selected)
+                  </span>
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Click nodes in order, then click Submit
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 min-h-14">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Your Order:</span>
+                  {selectedTraversalNodes.length === 0 && (
+                    <span className="text-xs text-slate-400 italic">
+                      Click the tree nodes above in {activeTraversalType.toUpperCase()} order to record your sequence.
+                    </span>
+                  )}
+                </div>
+                {selectedTraversalNodes.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {selectedTraversalNodes.map((val, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white font-mono text-xs sm:text-sm font-bold shadow-xs animate-in fade-in zoom-in-90 flex items-center gap-1.5">
+                          <span className="text-[10px] text-indigo-200">#{idx + 1}</span>
+                          <span>{val}</span>
+                        </span>
+                        {idx < selectedTraversalNodes.length - 1 && (
+                          <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400">→</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Traversal Action Buttons (Submit Answer & Reset Selection) */}
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  id="submit-traversal-answer-btn"
+                  onClick={handleSubmitTraversal}
+                  disabled={selectedTraversalNodes.length === 0}
+                  className="flex-1 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Submit Answer</span>
+                </button>
+
+                <button
+                  id="reset-traversal-selection-btn"
+                  onClick={handleResetTraversalSelection}
+                  className="py-3 px-5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all active:scale-98 shadow-xs"
+                >
+                  <RotateCcw className="w-4 h-4 text-slate-500" />
+                  <span>Reset Selection</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Level Complete Trophy Card */}
           <AnimatePresence>
             {isChallengeComplete && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 p-5 rounded-2xl shadow-md space-y-4 text-center"
+                className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 p-6 rounded-2xl shadow-md space-y-4 text-center mt-4"
               >
-                <div className="w-12 h-12 mx-auto rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg">
-                  <Trophy className="w-6 h-6 animate-pulse" />
+                <div className="w-14 h-14 mx-auto rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg">
+                  <Trophy className="w-7 h-7 animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="text-base font-black text-emerald-950 dark:text-emerald-100">
+                  <h4 className="text-lg font-black text-emerald-950 dark:text-emerald-100">
                     Level {challenge.level} Mastered!
                   </h4>
-                  <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-1">
+                  <p className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 mt-1">
                     Score: {currentTotalScore}/{maxPossibleScore} pts • Accuracy: {accuracyPercent}% • +{challenge.xp} XP earned!
                   </p>
                 </div>
 
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={() => resetChallenge(challenge)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 cursor-pointer shadow-xs"
                   >
                     Replay
                   </button>
@@ -2575,10 +2842,10 @@ const GamePageContent: React.FC = () => {
                         soundManager.playClick();
                         setActiveChallengeIndex((prev) => prev + 1);
                       }}
-                      className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 cursor-pointer shadow-xs"
                     >
                       <span>Next Level</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -2586,7 +2853,7 @@ const GamePageContent: React.FC = () => {
             )}
           </AnimatePresence>
         </div>
-      </div>
+      )}
 
       {/* Floating Drag Avatar for Universal Pointer Drag */}
       {pointerDrag?.isDragging && (
