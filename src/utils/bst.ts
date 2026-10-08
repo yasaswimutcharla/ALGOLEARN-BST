@@ -516,7 +516,10 @@ export function validateDropSlot(
 
       // 3. If left child is empty, this node's left is the ONLY valid slot
       if (!curr.left) {
-        if (slot.parentId === curr.id && slot.direction === 'left') {
+        const isTargetLeft =
+          (slot.parentId === curr.id || (slot.parentValue !== undefined && curr.value === slot.parentValue)) &&
+          slot.direction === 'left';
+        if (isTargetLeft) {
           return {
             isValid: true,
             explanation: `Correct! ${value} < ${curr.value}, so ${value} goes LEFT.`,
@@ -566,7 +569,10 @@ export function validateDropSlot(
 
       // 3. If right child is empty, this node's right is the ONLY valid slot
       if (!curr.right) {
-        if (slot.parentId === curr.id && slot.direction === 'right') {
+        const isTargetRight =
+          (slot.parentId === curr.id || (slot.parentValue !== undefined && curr.value === slot.parentValue)) &&
+          slot.direction === 'right';
+        if (isTargetRight) {
           return {
             isValid: true,
             explanation: `Correct! ${value} > ${curr.value}, so ${value} goes RIGHT.`,
@@ -616,7 +622,11 @@ export function attachNodeAtSlot(root: BSTNode | null, slot: DropSlot, value: nu
   }
   const cloned = cloneTree(root)!;
   function attach(node: BSTNode): boolean {
-    if (node.id === slot.parentId) {
+    const isTarget =
+      node.id === slot.parentId ||
+      (slot.parentValue !== undefined && node.value === slot.parentValue);
+
+    if (isTarget) {
       if (slot.direction === 'left') {
         node.left = newNode;
       } else if (slot.direction === 'right') {
@@ -628,7 +638,10 @@ export function attachNodeAtSlot(root: BSTNode | null, slot: DropSlot, value: nu
     if (node.right && attach(node.right)) return true;
     return false;
   }
-  attach(cloned);
+  const attached = attach(cloned);
+  if (!attached) {
+    return insertNode(cloned, value);
+  }
   return cloned;
 }
 

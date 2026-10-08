@@ -359,11 +359,17 @@ const GamePageContent: React.FC = () => {
     };
   }, [challenge]);
 
+  const canvasWidth = challenge.level === 4 ? 680 : challenge.level === 3 ? 960 : 900;
+  const canvasTopOffset = 55;
+  const canvasLevelHeight = 68;
+
   // Available drop slots calculated dynamically from the current student tree (hidden upon level completion)
-  const availableDropSlots: DropSlot[] =
-    isChallengeComplete || remainingTrayNumbers.length === 0
-      ? []
-      : getAvailableDropSlots(currentTree);
+  const availableDropSlots: DropSlot[] = useMemo(() => {
+    if (isChallengeComplete || remainingTrayNumbers.length === 0) {
+      return [];
+    }
+    return getAvailableDropSlots(currentTree, canvasWidth, canvasTopOffset, canvasLevelHeight);
+  }, [currentTree, isChallengeComplete, remainingTrayNumbers.length, canvasWidth]);
 
   // Active target for Level 2 (sequential incoming value)
   const currentLevel2Target = challenge.level === 2 && remainingTrayNumbers.length > 0 ? remainingTrayNumbers[0] : null;
@@ -1669,7 +1675,7 @@ const GamePageContent: React.FC = () => {
   };
 
   return (
-    <div id="game-page-root" className={`w-full mx-auto space-y-6 pb-12 ${challenge.level === 4 ? 'max-w-5xl' : 'max-w-6xl'}`}>
+    <div id="game-page-root" className={`w-full mx-auto space-y-6 pb-12 ${challenge.level === 4 ? 'max-w-5xl' : 'max-w-7xl'}`}>
       {/* 1. TOP: Level Progression Track */}
       <LevelProgressTrack
         challenges={GAME_CHALLENGES}
@@ -2257,7 +2263,7 @@ const GamePageContent: React.FC = () => {
         </div>
       ) : (
         /* LEVELS 1, 2, 3, AND 5: SPACIOUS, LARGER GAMEPLAY/MISSION BOX LAYOUT */
-        <div className="w-full bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 p-6 sm:p-8 space-y-6 relative transition-colors">
+        <div className="w-full bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-indigo-100 dark:border-slate-800 shadow-sm shadow-indigo-500/5 p-6 sm:p-8 md:p-10 space-y-6 md:space-y-8 min-h-[640px] relative transition-colors">
           {/* Header Bar: Mission Title, Objective & Action Controls */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
             <div className="space-y-1">
@@ -2431,7 +2437,7 @@ const GamePageContent: React.FC = () => {
 
           {/* Top Queue Tray: Element Queue for Levels 1, 2, 3 */}
           {(challenge.numbersToInsert || []).length > 0 && (
-            <div id="elements-top-tray" className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+            <div id="elements-top-tray" className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2.5">
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
@@ -2659,8 +2665,9 @@ const GamePageContent: React.FC = () => {
           </div>
 
           {/* Spacious Interactive Tree SVG Canvas Workspace */}
-          <div className="relative rounded-2xl bg-slate-50/40 dark:bg-slate-950/30 border border-slate-200/70 dark:border-slate-800/70 p-3 sm:p-5 overflow-x-auto">
+          <div className="relative rounded-2xl bg-slate-50/40 dark:bg-slate-950/30 border border-slate-200/70 dark:border-slate-800/70 p-4 sm:p-6 md:p-8 min-h-[460px] flex items-center justify-center overflow-x-auto">
             <TreeCanvas
+              className="[&>svg]:max-w-5xl [&>svg]:w-full"
               root={currentTree}
               slots={challenge.level === 5 ? [] : availableDropSlots}
               selectedDragValue={selectedDragNumber}
@@ -2685,20 +2692,30 @@ const GamePageContent: React.FC = () => {
                   : undefined
               }
               onSlotClick={(slot) => {
-                soundManager.playClick();
-                setPlacementFeedback({
-                  type: 'info',
-                  message: selectedDragNumber !== null
-                    ? `Drag node ${selectedDragNumber} and drop it directly onto this target slot to place it!`
-                    : 'Drag the active node chip from the queue and drop it directly onto this target slot to place it!',
-                });
+                const valToPlace =
+                  selectedDragNumber !== null
+                    ? selectedDragNumber
+                    : remainingTrayNumbers.length > 0
+                    ? remainingTrayNumbers[0]
+                    : null;
+                if (valToPlace !== null && !isChallengeComplete && challenge.level !== 4 && challenge.level !== 5) {
+                  handleSlotDropOrClick(slot, valToPlace);
+                } else {
+                  soundManager.playClick();
+                  setPlacementFeedback({
+                    type: 'info',
+                    message: selectedDragNumber !== null
+                      ? `Drag node ${selectedDragNumber} and drop it directly onto this target slot to place it!`
+                      : 'Drag the active node chip from the queue and drop it directly onto this target slot to place it!',
+                  });
+                }
               }}
               onSlotDrop={(slot, val, dropCoordinates) => {
                 handleSlotDropOrClick(slot, val, dropCoordinates);
               }}
               onNodeClick={handleNodeClick}
-              width={challenge.level === 3 ? 920 : 860}
-              height={challenge.level === 3 ? 460 : 430}
+              width={canvasWidth}
+              height={challenge.level === 3 ? 480 : 450}
               emptyMessage={
                 challenge.category === 'build_tree'
                   ? 'Tree is currently empty. Drag the first number (Root) from the queue above into the central root slot.'

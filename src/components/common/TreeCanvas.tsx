@@ -113,7 +113,10 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     e.stopPropagation();
     setInternalHoveredSlotId(null);
     const dataStr = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/node-value');
-    const val = parseInt(dataStr, 10);
+    let val = parseInt(dataStr, 10);
+    if (isNaN(val) && selectedDragValue !== null && selectedDragValue !== undefined) {
+      val = selectedDragValue;
+    }
     if (!isNaN(val) && onSlotDrop) {
       onSlotDrop(slot, val, { x: e.clientX, y: e.clientY });
     }
@@ -128,6 +131,9 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     const textData = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/node-value');
     if (textData && !isNaN(parseInt(textData, 10))) {
       val = parseInt(textData, 10);
+    }
+    if (val === null && selectedDragValue !== null && selectedDragValue !== undefined) {
+      val = selectedDragValue;
     }
     if (val === null && onNodeDragStart) {
       try {
@@ -156,7 +162,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     const emptySlotNode = nodes.find((n) => n.isEmptySlot);
     if (emptySlotNode) {
       const dist = Math.hypot(svgPt.x - emptySlotNode.x, svgPt.y - emptySlotNode.y);
-      if (dist <= 50 && onSlotDrop) {
+      if (dist <= 65 && onSlotDrop) {
         onSlotDrop(
           {
             id: emptySlotNode.id,
@@ -173,7 +179,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
 
     // Check candidate drop slots
     let closestSlot: DropSlot | null = null;
-    let minDist = 50; // 50 SVG units radius
+    let minDist = 75; // More forgiving drop radius (75 SVG units)
     for (const slot of actualSlots) {
       const dist = Math.hypot(svgPt.x - slot.x, svgPt.y - slot.y);
       if (dist < minDist) {
@@ -183,7 +189,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     }
 
     if (closestSlot && onSlotDrop) {
-      onSlotDrop(closestSlot, val);
+      onSlotDrop(closestSlot, val, { x: e.clientX, y: e.clientY });
     }
   };
 
@@ -594,7 +600,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
 
               return (
                 <g
-                  key={node.id}
+                  key={`node-${node.id}-${node.value}`}
                   id={`canvas-node-${node.id}`}
                   transform={`translate(${node.x}, ${node.y}) scale(${scale})`}
                   className="cursor-pointer group transition-transform duration-200 select-none"
